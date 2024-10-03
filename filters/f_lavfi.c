@@ -54,6 +54,8 @@
 #include "filter.h"
 #include "filter_internal.h"
 #include "user_filters.h"
+#include "lavfilogger.h"
+static LavfiLogger *logger("Topaz lavfi::");
 
 struct lavfi {
     struct mp_log *log;
@@ -67,6 +69,8 @@ struct lavfi {
     char **direct_filter_opts;
 
     AVFilterGraph *graph;
+    // add a outputCtx?
+
     // Set to true once all inputs have been initialized, and the graph is
     // linked.
     bool initialized;
@@ -545,6 +549,7 @@ static void dump_graph(struct lavfi *c)
 static void init_graph(struct lavfi *c)
 {
     assert(!c->initialized);
+    logger->log("Initiating graph now");
 
     if (!c->graph)
         precreate_graph(c, false);
@@ -735,6 +740,7 @@ static bool read_output_pads(struct lavfi *c)
             av_frame_unref(c->tmp_frame);
             if (frame.type) {
                 mp_pin_in_write(pad->pin, frame);
+                // also write to a outputCtx
             } else {
                 MP_ERR(c, "could not use filter output\n");
                 mp_frame_unref(&frame);
@@ -761,6 +767,8 @@ static bool read_output_pads(struct lavfi *c)
 static void lavfi_process(struct mp_filter *f)
 {
     struct lavfi *c = f->priv;
+    // here or before, init the outputCtx (after closing the last one)
+    // input should already give a output path to make file at
 
     if (!c->initialized)
         init_graph(c);
