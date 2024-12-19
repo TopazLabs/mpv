@@ -1,4 +1,5 @@
 # booleans
+option('mac', type: 'boolean', value: false, description: 'Building mac')
 option('gpl', type: 'boolean', value: true, description: 'GPL (version 2 or later) build')
 option('cplayer', type: 'boolean', value: true, description: 'mpv CLI player')
 option('libmpv', type: 'boolean', value: false, description: 'libmpv library')

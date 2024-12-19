@@ -1,0 +1,14 @@
+prefix=./builds-arm
+exec_prefix=${prefix}
+libdir=./builds-arm/lib
+includedir=./builds-arm/include
+
+Name: libavformat
+Description: FFmpeg container format library
+Version: 61.3.103
+Requires: 
+Requires.private: libavcodec >= 61.5.103, libswresample >= 5.2.100, libavutil >= 59.16.101
+Conflicts:
+Libs: -L${libdir}  -lavformat 
+Libs.private: -lm -lbz2 -lz -lssl -lcrypto
+Cflags: -I${includedir}

@@ -1,0 +1,1765 @@
+
+<html lang="en">
+    <head>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.18.1/vis.min.js"></script>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.18.1/vis.min.css" rel="stylesheet" type="text/css"/>
+    </head>
+
+    <body>
+        <script type="text/javascript">
+            function showhideclass(id) {
+                var elements = document.getElementsByClassName(id)
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].style.display = (elements[i].style.display != 'none') ? 'none' : 'block';
+                }
+            }
+        </script>
+        <style>
+            @media print {
+                .noPrint {
+                    display: none;
+                }
+            }
+            .button {
+                background-color: #5555cc;
+                border: none;
+                color: white;
+                padding: 5px 10px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 18px;
+            }
+        </style>
+
+        <div style="width: 100%;">
+            <div id="mynetwork" style="float:left; width: 75%;"></div>
+                <div style="float:right;width:25%;">
+                <div id="details"  style="padding:10;" class="noPrint">Package info: no package selected</div>
+                <button onclick="javascript:showhideclass('controls')" class="button noPrint">
+                    Show / hide graph controls
+                </button>
+                <div id="controls" class="controls" style="padding:5; display:none"></div>
+            </div>
+        </div>
+        <div style="clear:both"></div>
+
+        <script type="text/javascript">
+            var nodes = [
+                    
+                    {
+                        id: 0,
+                        label: 'mpv/None',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>conanfile.py (mpv/None)</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 043980c9a7374f55dfefa604d8df935e45dc8627</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 1,
+                        label: 'topaz-ffmpeg/7.0.2.4',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>topaz-ffmpeg/7.0.2.4</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 14a374cc3c431bb2985e0ed09fb76cfd72cb725a</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 2,
+                        label: 'zimg/3.0.5',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>zimg/3.0.5</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 9416f9f7f8b5a3b27805a6c766d39417f47393fd</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/sekrit-twc/zimg">https://github.com/sekrit-twc/zimg</a></li>' +
+                                   '    <li><b>license</b>: WTFPL</li>' +
+                                   '    <li><b>topics</b>: image, manipulation</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 3,
+                        label: 'videoai/1.5.39',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>videoai/1.5.39</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 556ec3a54c9f5313ed0dff749c19b49d28e94664</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/topazlabs/videoai">https://github.com/topazlabs/videoai</a></li>' +
+                                   '    <li><b>license</b>: Topaz</li>' +
+                                   '    <li><b>author</b>: Suraj Raghuraman suraj@topazlabs.com</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 4,
+                        label: 'harfbuzz/8.3.0',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>harfbuzz/8.3.0@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 0b2840dee893a022b7b78e19378fd60d597fc868</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://harfbuzz.github.io/">https://harfbuzz.github.io/</a></li>' +
+                                   '    <li><b>license</b>: MIT</li>' +
+                                   '    <li><b>topics</b>: opentype, text, engine</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 5,
+                        label: 'libtool/2.4.7',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libtool/2.4.7</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 3b8f45c2e52d5dba164d8008097a5be4476bad5c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/libtool/">https://www.gnu.org/software/libtool/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, library, shared, static</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 6,
+                        label: 'glib/2.78.3',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>glib/2.78.3@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: d86d3a63b058514d787fd99d46b63e7e36ec5384</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://gitlab.gnome.org/GNOME/glib">https://gitlab.gnome.org/GNOME/glib</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: gio, gmodule, gnome, gobject, gtk</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 7,
+                        label: 'glib/2.78.3',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>glib/2.78.3@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: d24200c5d345bce0ec348dd1f7a4aa5c1c0890b1</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://gitlab.gnome.org/GNOME/glib">https://gitlab.gnome.org/GNOME/glib</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: gio, gmodule, gnome, gobject, gtk</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 8,
+                        label: 'aiengine/3.4.18',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>aiengine/3.4.18</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: b8b249b85a59f171f07daf70dfe88a8ac961079b</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/topazlabs/aiengine">https://github.com/topazlabs/aiengine</a></li>' +
+                                   '    <li><b>license</b>: Topaz</li>' +
+                                   '    <li><b>author</b>: Suraj Raghuraman suraj@topazlabs.com</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 9,
+                        label: 'pkgconf/2.1.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>pkgconf/2.1.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 8fdda0446faec0c8a385938ab3d0dd89f9ebffc6</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://git.sr.ht/~kaniini/pkgconf">https://git.sr.ht/~kaniini/pkgconf</a></li>' +
+                                   '    <li><b>license</b>: ISC</li>' +
+                                   '    <li><b>topics</b>: build, configuration</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 10,
+                        label: 'pkgconf/2.1.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>pkgconf/2.1.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 8fdda0446faec0c8a385938ab3d0dd89f9ebffc6</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://git.sr.ht/~kaniini/pkgconf">https://git.sr.ht/~kaniini/pkgconf</a></li>' +
+                                   '    <li><b>license</b>: ISC</li>' +
+                                   '    <li><b>topics</b>: build, configuration</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 11,
+                        label: 'pkgconf/2.1.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>pkgconf/2.1.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 8fdda0446faec0c8a385938ab3d0dd89f9ebffc6</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://git.sr.ht/~kaniini/pkgconf">https://git.sr.ht/~kaniini/pkgconf</a></li>' +
+                                   '    <li><b>license</b>: ISC</li>' +
+                                   '    <li><b>topics</b>: build, configuration</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 12,
+                        label: 'opencv/4.5.6',
+                        shape: 'box',
+                        color: { background: 'OrangeRed'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>opencv/4.5.6</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: cbad1330c18741d6e6b595fb5f2ccce1c982f921</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://opencv.org">https://opencv.org</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: computer-vision, deep-learning, image-processing</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 13,
+                        label: 'libelf/0.8.13',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libelf/0.8.13</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: f6b442153e903f73c692df154e0a15fcbbec533c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://directory.fsf.org/wiki/Libelf">https://directory.fsf.org/wiki/Libelf</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.0</li>' +
+                                   '    <li><b>topics</b>: elf, fsf, libelf, object-file</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 14,
+                        label: 'libelf/0.8.13',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libelf/0.8.13</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: ea138aa0370196334237d7e07f0cc1b62795fdb2</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://directory.fsf.org/wiki/Libelf">https://directory.fsf.org/wiki/Libelf</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.0</li>' +
+                                   '    <li><b>topics</b>: elf, fsf, libelf, object-file</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 15,
+                        label: 'lcms/2.14',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>lcms/2.14</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 72dd7b9d662de0c291a741b5e5aa95af87481fe9</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mm2/Little-CMS">https://github.com/mm2/Little-CMS</a></li>' +
+                                   '    <li><b>license</b>: MIT</li>' +
+                                   '    <li><b>topics</b>: littlecms, little-cms, cmm, icc, cmm-engine, color-management-engine</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 16,
+                        label: 'fribidi/1.0.13',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>fribidi/1.0.13@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: f28faff3d37197abc9b9d11ac4641b4ab08cdde9</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/fribidi/fribidi">https://github.com/fribidi/fribidi</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1</li>' +
+                                   '    <li><b>topics</b>: unicode, bidirectional, text</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 17,
+                        label: 'freetype/2.13.2',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>freetype/2.13.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 98442bccd5516f786b6208fd08d4dc5ccb0a63b4</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.freetype.org">https://www.freetype.org</a></li>' +
+                                   '    <li><b>license</b>: FTL</li>' +
+                                   '    <li><b>topics</b>: freetype, fonts</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 18,
+                        label: 'automake/1.16.5',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>automake/1.16.5</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 27361dcf3cf7bb2cae1f9568f3a6424722acd206</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/automake/">https://www.gnu.org/software/automake/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: autotools, configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 19,
+                        label: 'automake/1.16.5',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>automake/1.16.5</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 27361dcf3cf7bb2cae1f9568f3a6424722acd206</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/automake/">https://www.gnu.org/software/automake/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: autotools, configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 20,
+                        label: 'pcre2/10.42',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>pcre2/10.42</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: aab9b2e010b65bde22d2eab2ec00079892875c62</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.pcre.org/">https://www.pcre.org/</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: regex, regexp, perl</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 21,
+                        label: 'pcre2/10.42',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>pcre2/10.42</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 86b53be083d6a46f4f89cee6e902097e562beecf</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.pcre.org/">https://www.pcre.org/</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: regex, regexp, perl</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 22,
+                        label: 'openssl/3.1.4',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>openssl/3.1.4</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 8c70ea12efe4a37be8867da051c161b2997593b7</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/openssl/openssl">https://github.com/openssl/openssl</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ssl, tls, encryption, security</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 23,
+                        label: 'openexr/3.1.9',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>openexr/3.1.9</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 4f5820da42eae87e6f75513ec864c46f758d9b63</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/AcademySoftwareFoundation/openexr">https://github.com/AcademySoftwareFoundation/openexr</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: openexr, hdr, image, picture</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 24,
+                        label: 'meson/1.4.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.4.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 25,
+                        label: 'meson/1.4.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.4.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 26,
+                        label: 'meson/1.4.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.4.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 27,
+                        label: 'meson/1.2.2',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.2.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: meson, mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 28,
+                        label: 'meson/1.2.2',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.2.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: meson, mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 29,
+                        label: 'meson/1.2.2',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.2.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: meson, mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 30,
+                        label: 'meson/1.2.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.2.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 31,
+                        label: 'meson/1.2.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>meson/1.2.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/mesonbuild/meson">https://github.com/mesonbuild/meson</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: mesonbuild, build-system</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 32,
+                        label: 'libzip/1.8.0',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libzip/1.8.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 5ff42cf74382c6f73f8cf1fe730b949d188aaac3</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/nih-at/libzip">https://github.com/nih-at/libzip</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: zip, zip-archives, zip-editing</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 33,
+                        label: 'libvpx/1.11.0',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libvpx/1.11.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 9973474e32f092d9b1078f630cd85ff97476d181</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.webmproject.org/code">https://www.webmproject.org/code</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: vpx, codec, web, VP8, VP9</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 34,
+                        label: 'libtiff/4.5.1',
+                        shape: 'box',
+                        color: { background: 'OrangeRed'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libtiff/4.5.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 6453a07a27b54655daa59f9216ebab41ebef0c46</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="http://www.simplesystems.org/libtiff">http://www.simplesystems.org/libtiff</a></li>' +
+                                   '    <li><b>license</b>: MIT</li>' +
+                                   '    <li><b>topics</b>: tiff, image, bigtiff, tagged-image-file-format</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 35,
+                        label: 'libpng/1.6.40',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libpng/1.6.40</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: d6ce86c0947a114d7c15c1c42e4491e0fba3b965</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="http://www.libpng.org">http://www.libpng.org</a></li>' +
+                                   '    <li><b>license</b>: libpng-2.0</li>' +
+                                   '    <li><b>topics</b>: png, graphics, image</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 36,
+                        label: 'libgettext/0.22',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libgettext/0.22@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: bdbefe43b20e192ac2f769303c54271dfbcd6a3c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/gettext">https://www.gnu.org/software/gettext</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: gettext, intl, libintl, i18n</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 37,
+                        label: 'libgettext/0.22',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libgettext/0.22@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 0255f73c4d386dab65e45938a9fce479ea1fa1dd</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/gettext">https://www.gnu.org/software/gettext</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: gettext, intl, libintl, i18n</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 38,
+                        label: 'jasper/4.0.0',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>jasper/4.0.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: f576efbad850ad99cd991cf0dcc705ca9279057a</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://jasper-software.github.io/jasper">https://jasper-software.github.io/jasper</a></li>' +
+                                   '    <li><b>license</b>: JasPer-2.0</li>' +
+                                   '    <li><b>topics</b>: toolkit, coding, jpeg, images</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 39,
+                        label: 'gettext/0.21',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>gettext/0.21@josh/mpv</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 836bc2b71d7a9fbaf5027dc007c9423f15ac2dcf</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/gettext">https://www.gnu.org/software/gettext</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-or-later</li>' +
+                                   '    <li><b>topics</b>: intl, libintl, i18n</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 40,
+                        label: 'autoconf/2.71',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>autoconf/2.71</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/autoconf/">https://www.gnu.org/software/autoconf/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 41,
+                        label: 'autoconf/2.71',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>autoconf/2.71</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/autoconf/">https://www.gnu.org/software/autoconf/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 42,
+                        label: 'autoconf/2.71',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>autoconf/2.71</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/autoconf/">https://www.gnu.org/software/autoconf/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 43,
+                        label: 'autoconf/2.71',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>autoconf/2.71</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/autoconf/">https://www.gnu.org/software/autoconf/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 44,
+                        label: 'autoconf/2.71',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>autoconf/2.71</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/autoconf/">https://www.gnu.org/software/autoconf/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 45,
+                        label: 'autoconf/2.71',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>autoconf/2.71</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/autoconf/">https://www.gnu.org/software/autoconf/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: configure, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 46,
+                        label: 'zstd/1.5.5',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>zstd/1.5.5</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 888fe18805925d45939e1345ab193ba410c88310</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/facebook/zstd">https://github.com/facebook/zstd</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: zstandard, compression, algorithm, decoder</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 47,
+                        label: 'zlib/1.2.13',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>zlib/1.2.13</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 6d416930eb71906a1668d66c308d3236d8a3d4b8</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://zlib.net">https://zlib.net</a></li>' +
+                                   '    <li><b>license</b>: Zlib</li>' +
+                                   '    <li><b>topics</b>: zlib, compression</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 48,
+                        label: 'zlib/1.2.13',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>zlib/1.2.13</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 3b8f45c2e52d5dba164d8008097a5be4476bad5c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://zlib.net">https://zlib.net</a></li>' +
+                                   '    <li><b>license</b>: Zlib</li>' +
+                                   '    <li><b>topics</b>: zlib, compression</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 49,
+                        label: 'yasm/1.3.0',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>yasm/1.3.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/yasm/yasm">https://github.com/yasm/yasm</a></li>' +
+                                   '    <li><b>license</b>: BSD-2-Clause</li>' +
+                                   '    <li><b>topics</b>: yasm, installer, assembler</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 50,
+                        label: 'xz_utils/5.4.5',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>xz_utils/5.4.5</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 6d416930eb71906a1668d66c308d3236d8a3d4b8</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://tukaani.org/xz">https://tukaani.org/xz</a></li>' +
+                                   '    <li><b>license</b>: (&#39;Unlicense&#39;, &#39;LGPL-2.1-or-later&#39;, &#39;GPL-2.0-or-later&#39;, &#39;GPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: lzma, xz, compression</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 51,
+                        label: 'quirc/1.1',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>quirc/1.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a0a8ce6cf9b4f3c4c9d4002bef2c7ed3770d54fa</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/dlbeer/quirc">https://github.com/dlbeer/quirc</a></li>' +
+                                   '    <li><b>license</b>: ISC</li>' +
+                                   '    <li><b>topics</b>: qr, decoder</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 52,
+                        label: 'openvino/2024.1.0.15008',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>openvino/2024.1.0.15008</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 06bbd7b25bd6cadf88d6f1404b720dc873ee15a7</li>' +
+                                   '    <li><b>url</b>: <a href="None">None</a></li>' +
+                                   '    <li><b>author</b>: Suraj Raghuraman suraj@topazlabs.com</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 53,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 54,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 55,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 56,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 57,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 58,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 59,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 60,
+                        label: 'ninja/1.11.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ninja/1.11.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ninja-build/ninja">https://github.com/ninja-build/ninja</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: ninja, build</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 61,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 62,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 63,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 64,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 65,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 66,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 67,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 68,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 69,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 70,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 71,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 72,
+                        label: 'm4/1.4.19',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>m4/1.4.19</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: a1d69a471d95cd6f10851424149cf5e1f803d286</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/m4/">https://www.gnu.org/software/m4/</a></li>' +
+                                   '    <li><b>license</b>: GPL-3.0-only</li>' +
+                                   '    <li><b>topics</b>: macro, preprocessor</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 73,
+                        label: 'libwebp/1.3.1',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libwebp/1.3.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: b0c3a877e628833b1dbd452db9253d7123791a79</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://chromium.googlesource.com/webm/libwebp">https://chromium.googlesource.com/webm/libwebp</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: image, libwebp, webp, decoding, encoding</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 74,
+                        label: 'libjpeg/9e',
+                        shape: 'box',
+                        color: { background: 'OrangeRed'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libjpeg/9e</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 72dd7b9d662de0c291a741b5e5aa95af87481fe9</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="http://ijg.org">http://ijg.org</a></li>' +
+                                   '    <li><b>license</b>: IJG</li>' +
+                                   '    <li><b>topics</b>: image, format, jpg, jpeg, picture, multimedia, graphics</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 75,
+                        label: 'libiconv/1.17',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libiconv/1.17</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 72dd7b9d662de0c291a741b5e5aa95af87481fe9</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/libiconv/">https://www.gnu.org/software/libiconv/</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: iconv, text, encoding, locale, unicode, conversion</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 76,
+                        label: 'libiconv/1.17',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libiconv/1.17</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 3b8f45c2e52d5dba164d8008097a5be4476bad5c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/libiconv/">https://www.gnu.org/software/libiconv/</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: iconv, text, encoding, locale, unicode, conversion</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 77,
+                        label: 'libiconv/1.17',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libiconv/1.17</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 3b8f45c2e52d5dba164d8008097a5be4476bad5c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://www.gnu.org/software/libiconv/">https://www.gnu.org/software/libiconv/</a></li>' +
+                                   '    <li><b>license</b>: LGPL-2.1-or-later</li>' +
+                                   '    <li><b>topics</b>: iconv, text, encoding, locale, unicode, conversion</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 78,
+                        label: 'libffi/3.4.4',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libffi/3.4.4</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 6d416930eb71906a1668d66c308d3236d8a3d4b8</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://sourceware.org/libffi/">https://sourceware.org/libffi/</a></li>' +
+                                   '    <li><b>license</b>: MIT</li>' +
+                                   '    <li><b>topics</b>: runtime, foreign-function-interface, runtime-library</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 79,
+                        label: 'libffi/3.4.4',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libffi/3.4.4</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 3b8f45c2e52d5dba164d8008097a5be4476bad5c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://sourceware.org/libffi/">https://sourceware.org/libffi/</a></li>' +
+                                   '    <li><b>license</b>: MIT</li>' +
+                                   '    <li><b>topics</b>: runtime, foreign-function-interface, runtime-library</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 80,
+                        label: 'libdeflate/1.18',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>libdeflate/1.18</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 6d416930eb71906a1668d66c308d3236d8a3d4b8</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ebiggers/libdeflate">https://github.com/ebiggers/libdeflate</a></li>' +
+                                   '    <li><b>license</b>: MIT</li>' +
+                                   '    <li><b>topics</b>: compression, decompression, deflate, zlib, gzip</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 81,
+                        label: 'json-for-modern-cpp/3.11.2',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>json-for-modern-cpp/3.11.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/nlohmann/json/">https://github.com/nlohmann/json/</a></li>' +
+                                   '    <li><b>author</b>: Niels Lohmann</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 82,
+                        label: 'jbig/20160605',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>jbig/20160605</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 4c35ccfe806e753d95e87962f12c52431cf36b32</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/ImageMagick/jbig">https://github.com/ImageMagick/jbig</a></li>' +
+                                   '    <li><b>license</b>: GPL-2.0</li>' +
+                                   '    <li><b>topics</b>: jbig, imagemagick, window, graphic</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 83,
+                        label: 'imath/3.1.9',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>imath/3.1.9</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 83c6d9793099ff7b808f594d728b78b6820de75c</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/AcademySoftwareFoundation/Imath">https://github.com/AcademySoftwareFoundation/Imath</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: computer-graphics, matrix, openexr, 3d-vector</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 84,
+                        label: 'httplib/0.12.2',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>httplib/0.12.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/yhirose/cpp-httplib">https://github.com/yhirose/cpp-httplib</a></li>' +
+                                   '    <li><b>author</b>: Suraj suraj@topazlabs.com</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 85,
+                        label: 'gnu-config/cci.20210814',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>gnu-config/cci.20210814</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://savannah.gnu.org/projects/config/">https://savannah.gnu.org/projects/config/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-3.0-or-later&#39;, &#39;autoconf-special-exception&#39;)</li>' +
+                                   '    <li><b>topics</b>: gnu, config, autotools, canonical, host, build, target, triplet</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 86,
+                        label: 'gnu-config/cci.20210814',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>gnu-config/cci.20210814</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://savannah.gnu.org/projects/config/">https://savannah.gnu.org/projects/config/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-3.0-or-later&#39;, &#39;autoconf-special-exception&#39;)</li>' +
+                                   '    <li><b>topics</b>: gnu, config, autotools, canonical, host, build, target, triplet</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 87,
+                        label: 'gnu-config/cci.20210814',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>gnu-config/cci.20210814</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://savannah.gnu.org/projects/config/">https://savannah.gnu.org/projects/config/</a></li>' +
+                                   '    <li><b>license</b>: (&#39;GPL-3.0-or-later&#39;, &#39;autoconf-special-exception&#39;)</li>' +
+                                   '    <li><b>topics</b>: gnu, config, autotools, canonical, host, build, target, triplet</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 88,
+                        label: 'eigen/3.4.0',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>eigen/3.4.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="http://eigen.tuxfamily.org">http://eigen.tuxfamily.org</a></li>' +
+                                   '    <li><b>license</b>: (&#39;MPL-2.0&#39;, &#39;LGPL-3.0-or-later&#39;)</li>' +
+                                   '    <li><b>topics</b>: algebra, linear-algebra, matrix, vector, numerical, header-only</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 89,
+                        label: 'date/3.0.1',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>date/3.0.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/HowardHinnant/date">https://github.com/HowardHinnant/date</a></li>' +
+                                   '    <li><b>author</b>: Howard Hinnant</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 90,
+                        label: 'cmake/3.27.1',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>cmake/3.27.1</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 27361dcf3cf7bb2cae1f9568f3a6424722acd206</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/Kitware/CMake">https://github.com/Kitware/CMake</a></li>' +
+                                   '    <li><b>license</b>: BSD-3-Clause</li>' +
+                                   '    <li><b>topics</b>: build, installer</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 91,
+                        label: 'cli11/2.4.2',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>cli11/2.4.2</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: da39a3ee5e6b4b0d3255bfef95601890afd80709</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/CLIUtils/CLI11.git">https://github.com/CLIUtils/CLI11.git</a></li>' +
+                                   '    <li><b>author</b>: Josh josh.yoo@topazlabs.com</li>' +
+                                   '    <li><b>topics</b>: command-line, parser, CLI</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 92,
+                        label: 'bzip2/1.0.8',
+                        shape: 'ellipse',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>bzip2/1.0.8</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 96d58dc40733938d6a5b07b2a12e3ec006b043f6</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="http://www.bzip.org">http://www.bzip.org</a></li>' +
+                                   '    <li><b>license</b>: bzip2-1.0.8</li>' +
+                                   '    <li><b>topics</b>: data-compressor, file-compression</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 93,
+                        label: 'bzip2/1.0.8',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>bzip2/1.0.8</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 221777a2e71855facdae593d1c53f6f421429226</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="http://www.bzip.org">http://www.bzip.org</a></li>' +
+                                   '    <li><b>license</b>: bzip2-1.0.8</li>' +
+                                   '    <li><b>topics</b>: data-compressor, file-compression</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 94,
+                        label: 'brotli/1.1.0',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>brotli/1.1.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: e1b7086450a7621032659a58bdc5a14d33da762b</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/google/brotli">https://github.com/google/brotli</a></li>' +
+                                   '    <li><b>license</b>: (&#39;MIT&#39;,)</li>' +
+                                   '    <li><b>topics</b>: brotli, compression</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 95,
+                        label: 'aom/3.5.0',
+                        shape: 'box',
+                        color: { background: 'LightGreen'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>aom/3.5.0</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 06bbd7b25bd6cadf88d6f1404b720dc873ee15a7</li>' +
+                                   '    <li><b>url</b>: <a href="None">None</a></li>' +
+                                   '    <li><b>author</b>: Gregory Maddra &lt;gregory.maddra@topazlabs.com&gt;</li>' +
+                                   '</ul>'
+                    },
+                    
+                    {
+                        id: 96,
+                        label: 'ade/0.1.2a',
+                        shape: 'box',
+                        color: { background: 'White'},
+                        font: { color: "black" },
+                        fulllabel: '<h3>ade/0.1.2a</h3>' +
+                                   '<ul>' +
+                                   '    <li><b>id</b>: 1dcd039adfb8d58eb4b87478b0357046b4f54d84</li>' +
+                                   '    <li><b>url</b>: <a href="https://github.com/conan-io/conan-center-index">https://github.com/conan-io/conan-center-index</a></li>' +
+                                   '    <li><b>homepage</b>: <a href="https://github.com/opencv/ade">https://github.com/opencv/ade</a></li>' +
+                                   '    <li><b>license</b>: Apache-2.0</li>' +
+                                   '    <li><b>topics</b>: graphs, opencv</li>' +
+                                   '</ul>'
+                    }
+            ]
+            var edges = [
+                    { from: 0, to: 1 },
+                    { from: 0, to: 47 },
+                    { from: 0, to: 15 },
+                    { from: 0, to: 75 },
+                    { from: 0, to: 17 },
+                    { from: 0, to: 16 },
+                    { from: 0, to: 74 },
+                    { from: 0, to: 4 },
+                    { from: 1, to: 3 },
+                    { from: 1, to: 2 },
+                    { from: 1, to: 33 },
+                    { from: 1, to: 95 },
+                    { from: 3, to: 8 },
+                    { from: 3, to: 88 },
+                    { from: 8, to: 89 },
+                    { from: 8, to: 84 },
+                    { from: 8, to: 81 },
+                    { from: 8, to: 12 },
+                    { from: 8, to: 32 },
+                    { from: 8, to: 22 },
+                    { from: 8, to: 47 },
+                    { from: 8, to: 91 },
+                    { from: 8, to: 52 },
+                    { from: 12, to: 47 },
+                    { from: 12, to: 74 },
+                    { from: 12, to: 38 },
+                    { from: 12, to: 35 },
+                    { from: 12, to: 23 },
+                    { from: 12, to: 34 },
+                    { from: 12, to: 88 },
+                    { from: 12, to: 73 },
+                    { from: 12, to: 51 },
+                    { from: 12, to: 96 },
+                    { from: 38, to: 74 },
+                    { from: 35, to: 47 },
+                    { from: 23, to: 47 },
+                    { from: 23, to: 83 },
+                    { from: 34, to: 47 },
+                    { from: 34, to: 80 },
+                    { from: 34, to: 50 },
+                    { from: 34, to: 74 },
+                    { from: 34, to: 82 },
+                    { from: 34, to: 46 },
+                    { from: 34, to: 73 },
+                    { from: 34, to: 90 },
+                    { from: 32, to: 47 },
+                    { from: 22, to: 47 },
+                    { from: 2, to: 5 },
+                    { from: 5, to: 19 },
+                    { from: 5, to: 18 },
+                    { from: 5, to: 68 },
+                    { from: 5, to: 87 },
+                    { from: 19, to: 45 },
+                    { from: 19, to: 44 },
+                    { from: 45, to: 72 },
+                    { from: 45, to: 71 },
+                    { from: 44, to: 70 },
+                    { from: 44, to: 69 },
+                    { from: 18, to: 43 },
+                    { from: 18, to: 42 },
+                    { from: 43, to: 68 },
+                    { from: 43, to: 67 },
+                    { from: 42, to: 66 },
+                    { from: 42, to: 65 },
+                    { from: 33, to: 49 },
+                    { from: 15, to: 31 },
+                    { from: 31, to: 60 },
+                    { from: 17, to: 35 },
+                    { from: 17, to: 47 },
+                    { from: 17, to: 93 },
+                    { from: 17, to: 94 },
+                    { from: 16, to: 30 },
+                    { from: 30, to: 59 },
+                    { from: 4, to: 17 },
+                    { from: 4, to: 7 },
+                    { from: 4, to: 25 },
+                    { from: 4, to: 10 },
+                    { from: 4, to: 6 },
+                    { from: 4, to: 39 },
+                    { from: 7, to: 47 },
+                    { from: 7, to: 78 },
+                    { from: 7, to: 21 },
+                    { from: 7, to: 14 },
+                    { from: 7, to: 36 },
+                    { from: 7, to: 75 },
+                    { from: 7, to: 26 },
+                    { from: 7, to: 11 },
+                    { from: 21, to: 47 },
+                    { from: 21, to: 93 },
+                    { from: 14, to: 41 },
+                    { from: 14, to: 86 },
+                    { from: 41, to: 64 },
+                    { from: 41, to: 63 },
+                    { from: 36, to: 75 },
+                    { from: 26, to: 58 },
+                    { from: 11, to: 29 },
+                    { from: 29, to: 57 },
+                    { from: 25, to: 56 },
+                    { from: 10, to: 28 },
+                    { from: 28, to: 55 },
+                    { from: 6, to: 48 },
+                    { from: 6, to: 79 },
+                    { from: 6, to: 20 },
+                    { from: 6, to: 13 },
+                    { from: 6, to: 37 },
+                    { from: 6, to: 77 },
+                    { from: 6, to: 24 },
+                    { from: 6, to: 9 },
+                    { from: 20, to: 48 },
+                    { from: 20, to: 92 },
+                    { from: 13, to: 40 },
+                    { from: 13, to: 85 },
+                    { from: 40, to: 62 },
+                    { from: 40, to: 61 },
+                    { from: 37, to: 77 },
+                    { from: 24, to: 54 },
+                    { from: 9, to: 27 },
+                    { from: 27, to: 53 },
+                    { from: 39, to: 76 }
+            ]
+
+            
+
+            var nodes = new vis.DataSet(nodes);
+            var edges = new vis.DataSet(edges);
+
+            var container = document.getElementById('mynetwork');
+            var controls = document.getElementById('controls');
+            var data = {
+                nodes: nodes,
+                edges: edges
+            };
+            var options = {
+                autoResize: true,
+                locale: 'en',
+                edges: {
+                    arrows: { to: {enabled: true} },
+                    smooth: { enabled: false}
+                },
+                nodes: {
+                    font: {'face': 'monospace', 'align': 'left'}
+                },
+                layout: {
+                    "hierarchical": {
+                        "enabled": true,
+                        "sortMethod": "directed",
+                        "direction": "UD",
+                        nodeSpacing: 200
+                    }
+                },
+                physics: {
+                    enabled: false,
+                },
+                configure: {
+                    enabled: true,
+                    filter: 'layout physics',
+                    showButton: false,
+                    container: controls
+                }
+            };
+            var network = new vis.Network(container, data, options);
+            network.on('click', function (properties) {
+                var ids = properties.nodes;
+                var clickedNodes = nodes.get(ids);
+                var control = document.getElementById("details");
+                if(clickedNodes[0]) {
+                    control.innerHTML = clickedNodes[0].fulllabel;
+                }
+                else {
+                    control.innerHTML = "<b>Package info</b>: No package selected";
+                }
+            });
+        </script>
+    </body>
+    <footer>
+        <div class="container-fluid">
+            <div class="info">
+                <p>
+                      Conan <b>v2.0.9</b> <script>document.write(new Date().getFullYear())</script> JFrog LTD. <a>https://conan.io</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+</html>

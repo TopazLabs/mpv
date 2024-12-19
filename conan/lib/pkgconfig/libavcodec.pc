@@ -1,0 +1,14 @@
+prefix=./builds-arm
+exec_prefix=${prefix}
+libdir=./builds-arm/lib
+includedir=./builds-arm/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 61.5.103
+Requires: 
+Requires.private: libswresample >= 5.2.100, libavutil >= 59.16.101
+Conflicts:
+Libs: -L${libdir}  -lavcodec 
+Libs.private: -lvpx -lm -pthread -lvpx -lm -pthread -lvpx -lm -pthread -lvpx -lm -pthread -liconv -lm -framework AudioToolbox -laom -pthread -lz -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Cflags: -I${includedir}

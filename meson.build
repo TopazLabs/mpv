@@ -1,5 +1,6 @@
 project('mpv',
         'c',
+        'cpp',
         license: ['GPL2+', 'LGPL2.1+'],
         version: files('./MPV_VERSION'),
         meson_version: '>=0.62.0',
@@ -10,26 +11,86 @@ project('mpv',
             'c_std=c11',
             'cpp_std=c++20',
             'cpp_eh=default',
-            'warning_level=2',
+            'warning_level=2'
         ]
 )
+if host_machine.system() == 'darwin'
+    add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
+    add_project_arguments('-D_POSIX_C_SOURCE=200112L', language: 'c')
+    if not meson.is_cross_build() # arm build
+        add_global_link_arguments('-mmacosx-version-min=11', language: ['c', 'cpp', 'objc', 'objcpp'])
+        add_global_arguments('-mmacosx-version-min=11', language: ['c', 'cpp', 'objc', 'objcpp'])
+    elif meson.is_cross_build()
+        add_global_link_arguments('-mmacosx-version-min=10.15', language: ['c', 'cpp', 'objc', 'objcpp'])
+        add_global_arguments('-mmacosx-version-min=10.15', language: ['c', 'cpp', 'objc', 'objcpp'])
+        add_global_arguments(['-arch','x86_64'], language: ['c', 'cpp', 'objc', 'objcpp', 'swift'])
+        add_global_link_arguments(['-arch','x86_64'], language: ['c', 'cpp', 'objc', 'objcpp', 'swift'])
+    endif
+endif
+
 
 build_root = meson.project_build_root()
 source_root = meson.project_source_root()
 python = find_program('python3')
 
+# compiler stuff
+cc = meson.get_compiler('c')
+
 # ffmpeg
-libavcodec = dependency('libavcodec', version: '>= 60.31.102')
-libavfilter = dependency('libavfilter', version: '>= 9.12.100')
-libavformat = dependency('libavformat', version: '>= 60.16.100')
-libavutil = dependency('libavutil', version: '>= 58.29.100')
-libswresample = dependency('libswresample', version: '>= 4.12.100')
-libswscale = dependency('libswscale', version: '>= 7.5.100')
+if not get_option('mac')
+ffmpeg_path = 'C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\topaz-ffmpeg' 
+ffmpeg_lib_dll = ffmpeg_path + '\\bin'
+ffmpeg_inc = include_directories('conan\\lib3rdparty\\topaz-ffmpeg\\include\\libavutil')
 
+# Find the static or dynamic library from the specific path
+libavcodec = cc.find_library('avcodec', dirs:[ffmpeg_lib_dll] )
+libavdevice = cc.find_library('avdevice', dirs:[ffmpeg_lib_dll] )
+libavfilter = cc.find_library('avfilter', dirs:[ffmpeg_lib_dll] )
+libavformat = cc.find_library('avformat', dirs:[ffmpeg_lib_dll] )
+libavutil = cc.find_library('avutil', dirs:[ffmpeg_lib_dll] )
+
+libswresample = cc.find_library('swresample', dirs:[ffmpeg_lib_dll] )
+libswscale = cc.find_library('swscale', dirs:[ffmpeg_lib_dll] )
+
+endif
+if get_option('mac')
+# ffmpeg_path = '/Users/joshyoo/Desktop/Topaz-Code/other/mpv2-working/conan/include' 
+lib_path = meson.global_source_root() + '/conan/lib'
+inc_path = meson.global_source_root() + '/conan/include'
+
+# Find the static or dynamic library from the specific path
+libavcodec = cc.find_library('libavcodec', dirs:[lib_path] )
+libavdevice = cc.find_library('libavdevice', dirs:[lib_path] )
+libavfilter = cc.find_library('libavfilter', dirs:[lib_path] )
+libavformat = cc.find_library('libavformat', dirs:[lib_path] )
+libavutil = cc.find_library('libavutil', dirs:[lib_path] )
+
+libswresample = cc.find_library('libswresample', dirs:[lib_path] )
+libswscale = cc.find_library('libswscale', dirs:[lib_path] )
+endif
+
+
+# if get_option('mac')
+# endif
+
+if not get_option('mac')
 libplacebo = dependency('libplacebo', version: '>=6.338.2',
-                default_options: ['default_library=static', 'demos=false'])
+                default_options: ['default_library=shared', 'demos=false', 'b_vscrt=mt'])
+# libass = dependency('libass', version: '>= 0.12.2')
+# libass = cc.find_library('libass', static:true, dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\libass\\lib'])
+libass = dependency('libass', version: '>= 0.12.2',
+                default_options: ['default_library=shared', 'b_vscrt=mt'])
+endif
+if get_option('mac')
+libplacebo = dependency('libplacebo', version: '>=6.338.2',
+                default_options: ['default_library=shared', 'demos=false'],
+                fallback: ['libplacebo'])
+# libass = dependency('libass', version: '>= 0.12.2')
+# libass = cc.find_library('libass', static:true, dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\libass\\lib'])
+libass = dependency('libass', version: '>= 0.12.2',
+                default_options: ['default_library=shared'])
+endif
 
-libass = dependency('libass', version: '>= 0.12.2')
 
 # the dependency order of libass -> ffmpeg is necessary due to
 # static linking symbol resolution between fontconfig and MinGW
@@ -261,8 +322,7 @@ sources = files(
 )
 
 
-# compiler stuff
-cc = meson.get_compiler('c')
+
 
 flags = ['-D_FILE_OFFSET_BITS=64']
 flags_c = []
@@ -392,6 +452,10 @@ endif
 add_project_arguments(flags, language: ['c', 'cpp', 'objc'])
 add_project_arguments(flags_c, language: ['c', 'objc'])
 add_project_link_arguments(link_flags, language: ['c', 'cpp', 'objc'])
+
+add_project_arguments('-D_SILENCE_CLANG_COROUTINE_MESSAGE', language: ['cpp', 'c'])
+add_project_arguments('/clang:-std=c++20', language: ['cpp'])
+
 
 
 # osdep
@@ -658,7 +722,17 @@ if features['javascript']
                      'sub/filter_jsre.c')
 endif
 
-lcms2 = dependency('lcms2', version: '>= 2.6', required: get_option('lcms2'))
+
+# lcms2 = cc.find_library('lcms2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\lcms-mt\\lib'] )
+if not get_option('mac')
+lcms2 = cc.find_library('lcms2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\lcms-mt\\lib'],
+                        required: get_option('lcms2'))
+endif
+
+if get_option('mac')
+lcms2 = cc.find_library('liblcms2', dirs:[meson.global_source_root() + '/conan/lib'],
+                        required: get_option('lcms2'))
+endif
 features += {'lcms2': lcms2.found()}
 if features['lcms2']
     dependencies += lcms2
@@ -958,7 +1032,16 @@ if features['gbm']
     dependencies += gbm
 endif
 
+
+if not get_option('mac')
 jpeg = dependency('libjpeg', required: get_option('jpeg'))
+endif
+
+if get_option('mac')
+jpeg = cc.find_library('libjpeg', dirs:[meson.global_source_root() +'/conan/lib'], 
+                    required: get_option('jpeg'))
+endif
+
 features += {'jpeg': jpeg.found()}
 if features['jpeg']
     dependencies += jpeg
@@ -1739,7 +1822,8 @@ features += {'libmpv-' + get_option('default_library'): get_option('libmpv')}
 # build targets
 if win32
     windows = import('windows')
-    res_flags = ['--codepage=65001']
+    # res_flags = ['--codepage=65001']
+    res_flags = ['-c65001']
 
     # Unintuitively, this compile operates out of the osdep subdirectory.
     # Hence, these includes are needed.
@@ -1763,10 +1847,37 @@ major = client_h_define.split('|')[0].split('<<')[0].strip('() ')
 minor = client_h_define.split('|')[1].strip('() ')
 client_api_version = major + '.' + minor + '.0'
 
-libmpv = library('mpv', sources, dependencies: dependencies, gnu_symbol_visibility: 'hidden',
+if not get_option('mac')
+libmpv = shared_library('mpv', sources, dependencies: dependencies, gnu_symbol_visibility: 'hidden',
                  link_args: cc.get_supported_link_arguments(['-Wl,-Bsymbolic']),
                  version: client_api_version, install: get_option('libmpv'),
-                 build_by_default: get_option('libmpv'))
+                 build_by_default: get_option('libmpv'),
+                 include_directories:[
+                    include_directories('conan\\lib3rdparty\\topaz-ffmpeg\\include'),
+                    # include_directories('conan\\lib3rdparty\\libass\\include'),
+                    include_directories('conan\\lib3rdparty\\lcms-mt\\include'),
+                    include_directories('conan\\lib3rdparty\\freetype\\include'),
+                    include_directories('conan\\lib3rdparty\\libiconv-mt\\include'),
+                    # include_directories('conan\\lib3rdparty\\libpng-mt\\include'),
+                    include_directories('conan\\lib3rdparty\\zimg\\include'),
+                    include_directories('conan\\lib3rdparty\\zlib-mt\\include')])
+endif
+
+if get_option('mac')
+libmpv = shared_library('mpv', sources, dependencies: dependencies, gnu_symbol_visibility: 'hidden',
+                 link_args: cc.get_supported_link_arguments(['-Wl,-Bsymbolic']),
+                 version: client_api_version, install: get_option('libmpv'),
+                 build_by_default: get_option('libmpv'),
+                 include_directories:[
+                    include_directories('conan/include/'),
+                    include_directories('conan/include/libavcodec'),
+                    include_directories('conan/include/libavdevice'),
+                    include_directories('conan/include/libavfilter'),
+                    include_directories('conan/include/libavformat'),
+                    include_directories('conan/include/libavutil'),
+                    include_directories('conan/include/freetype2')])
+endif
+
 
 
 if get_option('libmpv')
@@ -1811,7 +1922,8 @@ if get_option('cplayer')
     install_data('etc/mpv-symbolic.svg', install_dir: join_paths(hicolor_dir, 'symbolic', 'apps'))
 
     mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
-                     win_subsystem: 'windows', install: true)
+                     win_subsystem: 'windows', install: true,
+                     install_rpath : '@executable_path/conan/lib')
 
     # Older meson versions generate this in the player subdirectory.
     if win32 and meson.version().version_compare('>= 1.3.0')

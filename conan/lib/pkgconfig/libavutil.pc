@@ -1,0 +1,14 @@
+prefix=./builds-arm
+exec_prefix=${prefix}
+libdir=./builds-arm/lib
+includedir=./builds-arm/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 59.16.101
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil 
+Libs.private: -pthread -lm -lssl -lcrypto -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Cflags: -I${includedir}

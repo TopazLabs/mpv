@@ -16,6 +16,14 @@
  */
 
 #pragma once
+// // #include <stddef.h>
+// #if defined(__APPLE__)
+// #define _POSIX_C_SOURCE 200112L
+// #define _DARWIN_C_SOURCE
+// #endif
+
+#include <sys/types.h>
+#include <stddef.h>
 
 #include <errno.h>
 #include <pthread.h>
@@ -91,6 +99,32 @@ int mp_ptwrap_mutex_trylock(const char *file, int line, pthread_mutex_t *m);
 
 #endif
 
+// #if defined(__APPLE__)
+// #include <AvailabilityMacros.h>
+// #include <time.h>
+// #include <sys/time.h>
+// #include <mach/mach_time.h>
+// #include <mach/clock_types.h>
+// #endif
+
+// #include <pthread.h>
+
+// #if defined(__APPLE__)
+// typedef struct {
+//     pthread_cond_t cond;
+//     clock_id_t clk_id;
+// } mp_cond;
+// #else
+// typedef struct {
+//     pthread_cond_t cond;
+//     clockid_t clk_id;
+// } mp_cond;
+// #endif
+
+#if defined(__APPLE__)
+#include <_time.h>
+#endif
+
 typedef struct {
     pthread_cond_t cond;
     clockid_t clk_id;
@@ -103,6 +137,7 @@ typedef pthread_t       mp_thread_id;
 typedef pthread_t       mp_thread;
 
 #define MP_STATIC_COND_INITIALIZER { .cond = PTHREAD_COND_INITIALIZER, .clk_id = CLOCK_REALTIME }
+// #define MP_STATIC_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALaIZER
 #define MP_STATIC_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
 #define MP_STATIC_ONCE_INITIALIZER PTHREAD_ONCE_INIT
 
@@ -196,6 +231,7 @@ static inline int mp_cond_timedwait(mp_cond *cond, mp_mutex *mutex, int64_t time
         return pthread_cond_wait(&cond->cond, mutex);
 
     struct timespec ts;
+    // const struct timespec *const_ts_ptr = &ts;
     clock_gettime(cond->clk_id, &ts);
     ts.tv_sec  += timeout / MP_TIME_S_TO_NS(1);
     ts.tv_nsec += timeout % MP_TIME_S_TO_NS(1);
@@ -204,7 +240,9 @@ static inline int mp_cond_timedwait(mp_cond *cond, mp_mutex *mutex, int64_t time
         ts.tv_sec++;
     }
 
-    return pthread_cond_timedwait(&cond->cond, mutex, &ts);
+    // return pthread_cond_timedwait(&cond->cond, mutex, &ts);
+    // return pthread_cond_timedwait(&cond->cond, mutex, (const struct timespec * _Nullable __restrict)&ts);
+    return pthread_cond_timedwait(&cond->cond, mutex, (void*)&ts);
 }
 
 static inline int mp_cond_timedwait_until(mp_cond *cond, mp_mutex *mutex, int64_t until)

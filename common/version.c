@@ -18,6 +18,11 @@
 #include "common.h"
 #include "version.h"
 
+// Dirty fix to find the right path. - Josh
+#if defined(__APPLE__)
+#include "../build-mac/common/version.h"
+#endif
+
 const char mpv_version[]  = "mpv " VERSION;
 const char mpv_builddate[] = BUILDDATE;
 const char mpv_copyright[] = MPVCOPYRIGHT;
