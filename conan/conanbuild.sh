@@ -1,1 +1,0 @@
-. "/Users/joshyoo/Desktop/Topaz-Code/mpv/conan/conanbuildenv-release-armv8.sh"

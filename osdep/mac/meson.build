@@ -8,7 +8,7 @@ target = join_paths(build_root, 'osdep/mac/swift.o')
 
 swift_flags = ['-frontend', '-c', '-sdk', macos_sdk_path,
                '-enable-objc-interop', '-emit-objc-header', '-parse-as-library',
-               '-Xcc', '-I' + meson.global_source_root() + '/build-mac/subprojects/libplacebo/src/include',
+               '-Xcc', '-I' + meson.global_source_root() + '/build/subprojects/libplacebo/src/include',
   '-Xcc', '-I' + meson.global_source_root() + '/conan/include']
   
 

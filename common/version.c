@@ -20,7 +20,7 @@
 
 // Dirty fix to find the right path. - Josh
 #if defined(__APPLE__)
-#include "../build-mac/common/version.h"
+#include "../build/common/version.h"
 #endif
 
 const char mpv_version[]  = "mpv " VERSION;
