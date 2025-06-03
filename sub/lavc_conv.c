@@ -73,6 +73,8 @@ struct lavc_conv *lavc_conv_create(struct sd *sd)
     if (mp_set_avctx_codec_headers(avctx, sd->codec) < 0)
         goto error;
 
+    MP_VERBOSE(sd, "Using subtitle decoder %s\n", codec->name);
+
     priv->avpkt = av_packet_alloc();
     priv->avpkt_vtt = av_packet_alloc();
     if (!priv->avpkt || !priv->avpkt_vtt)
@@ -107,7 +109,7 @@ struct lavc_conv *lavc_conv_create(struct sd *sd)
  error:
     MP_FATAL(priv, "Could not open libavcodec subtitle converter\n");
     av_dict_free(&opts);
-    av_free(avctx);
+    avcodec_free_context(&avctx);
     mp_free_av_packet(&priv->avpkt);
     mp_free_av_packet(&priv->avpkt_vtt);
     talloc_free(priv);

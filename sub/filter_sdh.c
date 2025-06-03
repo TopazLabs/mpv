@@ -130,8 +130,6 @@ static void copy_ass(struct sd_filter *sd, char **rpp, struct buffer *buf)
         }
     }
     *rpp = rp;
-
-    return;
 }
 
 static bool skip_enclosed(struct sd_filter *sd, char **rpp, struct buffer *buf,
@@ -219,8 +217,6 @@ static void skip_speaker_label(struct sd_filter *sd, char **rpp, struct buffer *
         return;
     }
     *rpp = rp;
-
-    return;
 }
 
 // Check for text enclosed in symbols, like (SOUND)
@@ -483,7 +479,7 @@ static struct demux_packet *sdh_filter(struct sd_filter *ft,
     // Stupidly, this copies it again. One could possibly allocate the packet
     // for writing in the first place (new_demux_packet()) and use
     // demux_packet_shorten().
-    struct demux_packet *npkt = new_demux_packet_from(line, strlen(line));
+    struct demux_packet *npkt = new_demux_packet_from(ft->packet_pool, line, strlen(line));
     if (npkt)
         demux_packet_copy_attribs(npkt, pkt);
 

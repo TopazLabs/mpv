@@ -25,6 +25,10 @@
 
 #include "osdep/compiler.h"
 
+// Escape code for TERM_MSG codes. PU2 (U+0092) followed by 't'.
+#define TERM_MSG_ESCAPE "\xC2\x92" "t"
+#define TERM_MSG_0 TERM_MSG_ESCAPE "0"
+
 struct mp_log;
 
 // A mp_log instance that never outputs anything.

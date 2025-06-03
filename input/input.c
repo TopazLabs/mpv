@@ -28,6 +28,8 @@
 #include <fcntl.h>
 #include <assert.h>
 
+#include <mpv/client.h>
+
 #include "osdep/io.h"
 #include "misc/rendezvous.h"
 
@@ -269,7 +271,7 @@ static void queue_remove(struct cmd_queue *queue, struct mp_cmd *cmd)
         p_prev = &(*p_prev)->queue_next;
     }
     // if this fails, cmd was not in the queue
-    assert(*p_prev == cmd);
+    mp_assert(*p_prev == cmd);
     *p_prev = cmd->queue_next;
 }
 
@@ -672,8 +674,11 @@ static void interpret_key(struct input_ctx *ictx, int code, double scale,
         scale_units = MPMIN(scale_units, 20);
         for (int i = 0; i < scale_units - 1; i++)
             queue_cmd(ictx, mp_cmd_clone(cmd));
-        if (scale_units)
+        if (scale_units) {
             queue_cmd(ictx, cmd);
+        } else {
+            talloc_free(cmd);
+        }
     }
 }
 
@@ -770,11 +775,13 @@ static void feed_key(struct input_ctx *ictx, int code, double scale,
         mp_cmd_t *cmd = get_cmd_from_keys(ictx, (bstr){0}, code);
         if (!cmd)  // queue dummy cmd so that mouse-pos can notify observers
             cmd = mp_input_parse_cmd(ictx, bstr0("ignore"), "<internal>");
+        if (cmd)
+            cmd->notify_event = true;
         queue_cmd(ictx, cmd);
         return;
     }
     double now = mp_time_sec();
-    // ignore system doubleclick if we generate these events ourselves
+    // ignore system double-click if we generate these events ourselves
     if (!force_mouse && opts->doubleclick_time && MP_KEY_IS_MOUSE_BTN_DBL(unmod))
         return;
     int units = 1;
@@ -793,7 +800,7 @@ static void feed_key(struct input_ctx *ictx, int code, double scale,
         } else if (code == MP_MBTN_LEFT && ictx->opts->allow_win_drag &&
                    !test_mouse(ictx, ictx->mouse_vo_x, ictx->mouse_vo_y, MP_INPUT_ALLOW_VO_DRAGGING))
         {
-            // This is a mouse left button down event which isn't part of a doubleclick,
+            // This is a mouse left button down event which isn't part of a double-click,
             // and the mouse is on an input section which allows VO dragging.
             // Mark the dragging mouse button down in this case.
             ictx->dragging_button_down = true;
@@ -807,7 +814,7 @@ static void feed_key(struct input_ctx *ictx, int code, double scale,
     if (code & MP_KEY_STATE_UP) {
         code &= ~MP_KEY_STATE_UP;
         if (code == MP_MBTN_LEFT) {
-            // This is a mouse left botton up event. Mark the dragging mouse button up.
+            // This is a mouse left button up event. Mark the dragging mouse button up.
             ictx->dragging_button_down = false;
         }
     }
@@ -882,7 +889,7 @@ bool mp_input_vo_keyboard_enabled(struct input_ctx *ictx)
     return r;
 }
 
-static void set_mouse_pos(struct input_ctx *ictx, int x, int y)
+static void set_mouse_pos(struct input_ctx *ictx, int x, int y, bool quiet)
 {
     MP_TRACE(ictx, "mouse move %d/%d\n", x, y);
 
@@ -904,7 +911,8 @@ static void set_mouse_pos(struct input_ctx *ictx, int x, int y)
         MP_TRACE(ictx, "-> %d/%d\n", x, y);
     }
 
-    ictx->mouse_event_counter++;
+    if (!quiet)
+        ictx->mouse_event_counter++;
     ictx->mouse_vo_x = x;
     ictx->mouse_vo_y = y;
 
@@ -915,6 +923,7 @@ static void set_mouse_pos(struct input_ctx *ictx, int x, int y)
 
     if (cmd) {
         cmd->mouse_move = true;
+        cmd->notify_event = true;
         cmd->mouse_x = x;
         cmd->mouse_y = y;
         if (should_drop_cmd(ictx, cmd)) {
@@ -950,15 +959,15 @@ static void set_mouse_pos(struct input_ctx *ictx, int x, int y)
 void mp_input_set_mouse_pos_artificial(struct input_ctx *ictx, int x, int y)
 {
     input_lock(ictx);
-    set_mouse_pos(ictx, x, y);
+    set_mouse_pos(ictx, x, y, false);
     input_unlock(ictx);
 }
 
-void mp_input_set_mouse_pos(struct input_ctx *ictx, int x, int y)
+void mp_input_set_mouse_pos(struct input_ctx *ictx, int x, int y, bool quiet)
 {
     input_lock(ictx);
     if (ictx->opts->enable_mouse_movements)
-        set_mouse_pos(ictx, x, y);
+        set_mouse_pos(ictx, x, y, quiet);
     input_unlock(ictx);
 }
 
@@ -975,6 +984,8 @@ static void notify_touch_update(struct input_ctx *ictx)
 {
     // queue dummy cmd so that touch-pos can notify observers
     mp_cmd_t *cmd = mp_input_parse_cmd(ictx, bstr0("ignore"), "<internal>");
+    if (cmd)
+        cmd->notify_event = true;
     queue_cmd(ictx, cmd);
 }
 
@@ -988,7 +999,7 @@ static void update_touch_point(struct input_ctx *ictx, int idx, int id, int x, i
     ictx->touch_points[idx].y = y;
     // Emulate mouse input from the primary touch point (the first one added)
     if (ictx->opts->touch_emulate_mouse && idx == 0)
-        set_mouse_pos(ictx, x, y);
+        set_mouse_pos(ictx, x, y, false);
     notify_touch_update(ictx);
 }
 
@@ -1007,7 +1018,7 @@ void mp_input_add_touch_point(struct input_ctx *ictx, int id, int x, int y)
                          (struct touch_point){id, x, y});
         // Emulate MBTN_LEFT down if this is the only touch point
         if (ictx->opts->touch_emulate_mouse && ictx->num_touch_points == 1) {
-            set_mouse_pos(ictx, x, y);
+            set_mouse_pos(ictx, x, y, false);
             feed_key(ictx, MP_MBTN_LEFT | MP_KEY_STATE_DOWN, 1, false);
         }
         notify_touch_update(ictx);
@@ -1285,7 +1296,7 @@ static void remove_binds(struct cmd_bind_section *bs, bool builtin)
     for (int n = bs->num_binds - 1; n >= 0; n--) {
         if (bs->binds[n].is_builtin == builtin) {
             bind_dealloc(&bs->binds[n]);
-            assert(bs->num_binds >= 1);
+            mp_assert(bs->num_binds >= 1);
             bs->binds[n] = bs->binds[bs->num_binds - 1];
             bs->num_binds--;
         }
@@ -1349,7 +1360,7 @@ static void bind_keys(struct input_ctx *ictx, bool builtin, bstr section,
     struct cmd_bind_section *bs = get_bind_section(ictx, section);
     struct cmd_bind *bind = NULL;
 
-    assert(num_keys <= MP_MAX_KEY_DOWN);
+    mp_assert(num_keys <= MP_MAX_KEY_DOWN);
 
     for (int n = 0; n < bs->num_binds; n++) {
         struct cmd_bind *b = &bs->binds[n];
@@ -1427,8 +1438,7 @@ static int parse_config(struct input_ctx *ictx, bool builtin, bstr data,
         char *name = bstrdup0(NULL, keyname);
         int keys[MP_MAX_KEY_DOWN];
         int num_keys = 0;
-        if (!mp_input_get_keys_from_string(name, MP_MAX_KEY_DOWN, &num_keys, keys))
-        {
+        if (!mp_input_get_keys_from_string(name, MP_MAX_KEY_DOWN, &num_keys, keys)) {
             talloc_free(name);
             MP_ERR(ictx, "Unknown key '%.*s' at %s\n", BSTR_P(keyname), cur_loc);
             continue;
@@ -1469,19 +1479,14 @@ static bool parse_config_file(struct input_ctx *ictx, char *file)
 {
     bool r = false;
     void *tmp = talloc_new(NULL);
-    stream_t *s = NULL;
 
     file = mp_get_user_path(tmp, ictx->global, file);
 
-    s = stream_create(file, STREAM_ORIGIN_DIRECT | STREAM_READ, NULL, ictx->global);
-    if (!s || s->is_directory) {
-        MP_ERR(ictx, "Can't open input config file %s.\n", file);
-        goto done;
-    }
-    stream_skip_bom(s);
-    bstr data = stream_read_complete(s, tmp, 1000000);
+    bstr data = stream_read_file2(file, tmp, STREAM_ORIGIN_DIRECT | STREAM_READ,
+                                  ictx->global, 1000000);
     if (data.start) {
         MP_VERBOSE(ictx, "Parsing input config file %s\n", file);
+        bstr_eatstart0(&data, "\xEF\xBB\xBF"); // skip BOM
         int num = parse_config(ictx, false, data, file, (bstr){0});
         MP_VERBOSE(ictx, "Input config file %s parsed: %d binds\n", file, num);
         r = true;
@@ -1489,8 +1494,6 @@ static bool parse_config_file(struct input_ctx *ictx, char *file)
         MP_ERR(ictx, "Error reading input config file %s\n", file);
     }
 
-done:
-    free_stream(s);
     talloc_free(tmp);
     return r;
 }
@@ -1650,44 +1653,23 @@ void mp_input_run_cmd(struct input_ctx *ictx, const char **cmd)
     input_unlock(ictx);
 }
 
-void mp_input_bind_key(struct input_ctx *ictx, int key, bstr command)
+bool mp_input_bind_key(struct input_ctx *ictx, const char *key, bstr command,
+                       const char *desc)
 {
+    char *name = talloc_strdup(NULL, key);
+    int keys[MP_MAX_KEY_DOWN];
+    int num_keys = 0;
+    if (!mp_input_get_keys_from_string(name, MP_MAX_KEY_DOWN, &num_keys, keys)) {
+        talloc_free(name);
+        return false;
+    }
+    talloc_free(name);
+
     input_lock(ictx);
-    struct cmd_bind_section *bs = get_bind_section(ictx, (bstr){0});
-    struct cmd_bind *bind = NULL;
-
-    for (int n = 0; n < bs->num_binds; n++) {
-        struct cmd_bind *b = &bs->binds[n];
-        if (bind_matches_key(b, 1, &key) && b->is_builtin == false) {
-            bind = b;
-            break;
-        }
-    }
-
-    if (!bind) {
-        struct cmd_bind empty = {{0}};
-        MP_TARRAY_APPEND(bs, bs->binds, bs->num_binds, empty);
-        bind = &bs->binds[bs->num_binds - 1];
-    }
-
-    bind_dealloc(bind);
-
-    *bind = (struct cmd_bind) {
-        .cmd = bstrdup0(bs->binds, command),
-        .location = talloc_strdup(bs->binds, "keybind-command"),
-        .owner = bs,
-        .is_builtin = false,
-        .num_keys = 1,
-    };
-    memcpy(bind->keys, &key, 1 * sizeof(bind->keys[0]));
-    if (mp_msg_test(ictx->log, MSGL_DEBUG)) {
-        char *s = mp_input_get_key_combo_name(&key, 1);
-        MP_TRACE(ictx, "add:section='%.*s' key='%s'%s cmd='%s' location='%s'\n",
-                 BSTR_P(bind->owner->section), s, bind->is_builtin ? " builtin" : "",
-                 bind->cmd, bind->location);
-        talloc_free(s);
-    }
+    bind_keys(ictx, false, (bstr){0}, keys, num_keys, command,
+              "keybind-command", desc);
     input_unlock(ictx);
+    return true;
 }
 
 struct mpv_node mp_input_get_bindings(struct input_ctx *ictx)
@@ -1815,9 +1797,9 @@ static void input_src_kill(struct mp_input_src *src)
 
 void mp_input_src_init_done(struct mp_input_src *src)
 {
-    assert(!src->in->init_done);
-    assert(src->in->thread_running);
-    assert(mp_thread_id_equal(mp_thread_get_id(src->in->thread), mp_thread_current_id()));
+    mp_assert(!src->in->init_done);
+    mp_assert(src->in->thread_running);
+    mp_assert(mp_thread_id_equal(mp_thread_get_id(src->in->thread), mp_thread_current_id()));
     src->in->init_done = true;
     mp_rendezvous(&src->in->init_done, 0);
 }

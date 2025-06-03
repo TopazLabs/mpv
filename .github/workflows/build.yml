@@ -62,7 +62,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y ccache g++-mingw-w64 gcc-multilib meson nasm ninja-build pkg-config ${{ matrix.wine }}
+          sudo apt-get install --no-install-recommends -y ccache g++-mingw-w64 gcc-multilib meson nasm ninja-build pkgconf ${{ matrix.wine }} wine
 
       - name: Install Meson Wraps
         run: |
@@ -116,7 +116,17 @@ jobs:
           key: ${{ matrix.target }}-${{ steps.get_time.outputs.timestamp }}
 
   win32:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            arch: "x64"
+            os: "windows-latest"
+          - target: aarch64-pc-windows-msvc
+            arch: "arm64"
+            os: "windows-11-arm"
     env:
       VS: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise"
       CC: "ccache clang"
@@ -144,16 +154,12 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: x86_64-windows-msvc-${{ steps.get_time.outputs.timestamp }}
-          restore-keys: x86_64-windows-msvc-
+          key: ${{ matrix.target }}-${{ steps.get_time.outputs.timestamp }}
+          restore-keys: ${{ matrix.target }}-
 
-      # https://github.com/mesonbuild/meson/pull/11715
       - name: Install dependencies
         run: |
-          git clone https://github.com/kasper93/meson --depth 1 -b 8981
-          python -m pip install build wheel
-          python -m build --wheel --no-isolation meson
-          python -m pip install (Get-Item ./meson/dist/meson-*-py3-none-any.whl).FullName
+          python -m pip install meson
           choco install ccache nasm
 
       - name: Update Meson WrapDB
@@ -169,10 +175,11 @@ jobs:
         id: build
         run: |
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -ne 'C:\Program Files\LLVM\bin' -and `
+                                                             $_ -ne 'C:\Program Files\CMake\bin' -and `
                                                              $_ -ne 'C:\Strawberry\c\bin' }) -join ';'
           $env:PATH += ';C:\Program Files\NASM'
           Import-Module "$env:VS\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
+          Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=${{ matrix.arch }}"
           ./ci/build-win32.ps1
 
       - name: Print build log
@@ -184,10 +191,12 @@ jobs:
         id: tests
         run: |
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -ne 'C:\Program Files\LLVM\bin' -and `
+                                                             $_ -ne 'C:\Program Files\CMake\bin' -and `
                                                              $_ -ne 'C:\Strawberry\c\bin' }) -join ';'
+          $env:PATH += ';C:\Program Files\NASM'
           Import-Module "$env:VS\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
-          meson test -C build mpv:
+          Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=${{ matrix.arch }}"
+          meson test -C build -t 2
 
       - name: Print meson test log
         if: ${{ failure() && steps.tests.outcome == 'failure' }}
@@ -196,7 +205,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mpv-x86_64-windows-msvc
+          name: mpv-${{ matrix.target }}
           path: |
             build/mpv.???
             build/vulkan-*.dll
@@ -207,7 +216,7 @@ jobs:
         if: always()
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: x86_64-windows-msvc-${{ steps.get_time.outputs.timestamp }}
+          key: ${{ matrix.target }}-${{ steps.get_time.outputs.timestamp }}
 
   macos:
     runs-on: ${{ matrix.os }}
@@ -218,17 +227,17 @@ jobs:
         cxx:
           - "clang++"
         os:
-          - "macos-12"
           - "macos-13"
           - "macos-14"
+          - "macos-15"
         include:
-          - os: "macos-12"
-            arch: "intel"
           - os: "macos-13"
             arch: "intel"
           - os: "macos-14"
             arch: "arm"
             xcode: "Xcode_15.2"
+          - os: "macos-15"
+            arch: "arm"
     steps:
       - uses: actions/checkout@v4
 
@@ -236,6 +245,10 @@ jobs:
         run: |
           find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete -print
           brew unlink python && brew link --overwrite python
+
+      - name: Unlink pkg-config if the CI runner happens to have it already installed
+        run: |
+          find "$(brew config | grep HOMEBREW_PREFIX | cut -f 2- -d ' ')/bin" -lname '*/pkg-config@0*/*' -print -exec brew unlink pkg-config@0.29.2 \; -quit
 
       - name: Change Xcode version
         if: ${{ matrix.xcode != '' }}
@@ -245,7 +258,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install -q autoconf automake pkg-config libtool python freetype fribidi little-cms2 \
+          brew install -q autoconf automake pkgconf libtool python freetype fribidi little-cms2 \
             luajit libass ffmpeg meson uchardet mujs libplacebo molten-vk vulkan-loader vulkan-headers
 
       - name: Build with meson
@@ -289,30 +302,25 @@ jobs:
       env:
         CC: "${{ matrix.config.cc }}"
         CXX: "${{ matrix.config.cxx }}"
-        ASAN_OPTIONS: "halt_on_error=1:abort_on_error=1:print_summary=1:detect_leaks=0"
+        CC_LD: "${{ matrix.config.ld }}"
+        CXX_LD: "${{ matrix.config.ld }}"
     strategy:
       matrix:
         config:
-        - {
-            cc: "gcc",
-            cxx: "g++",
-          }
-        - {
-            cc: "clang",
-            cxx: "clang++",
-          }
+          - cc: "gcc"
+            cxx: "g++"
+            args: "-Db_ndebug=true"
+          - cc: "clang"
+            cxx: "clang++"
+            ld: "lld"
+            args: "-Db_lto=true -Db_lto_mode=thin"
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          # workaround to avoid "fatal: unsafe repository" error
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Build with meson
         id: build
         run: |
-          ./ci/build-tumbleweed.sh
+          ./ci/build-tumbleweed.sh ${{ matrix.config.args }}
 
       - name: Print meson log
         if: ${{ failure() && steps.build.outcome == 'failure' }}
@@ -322,6 +330,7 @@ jobs:
       - name: Run meson tests
         id: tests
         run: |
+          export LSAN_OPTIONS="suppressions=${GITHUB_WORKSPACE}/.lsan_suppressions"
           meson test -C build
 
       - name: Print meson test log
@@ -387,7 +396,7 @@ jobs:
       - name: Build with meson
         id: build
         run: |
-              ./ci/build-linux-old.sh
+          ./ci/build-linux-old.sh
 
       - name: Print meson log
         if: ${{ failure() && steps.build.outcome == 'failure' }}
@@ -410,10 +419,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Test in OpenBSD VM
-      uses: cross-platform-actions/action@v0.25.0
+      uses: cross-platform-actions/action@v0.28.0
       with:
         operating_system: openbsd
-        version: '7.5'
+        version: '7.7'
         run: |
             sudo pkg_add -U \
                 cmake \
@@ -444,7 +453,10 @@ jobs:
                 vulkan-headers \
                 zimg
             ./ci/build-openbsd.sh
-            meson test -C build
+            if ! meson test -C build; then
+                cat ./build/meson-logs/testlog.txt
+                exit 1
+            fi
 
   freebsd:
     runs-on: ubuntu-latest # until https://github.com/actions/runner/issues/385
@@ -452,10 +464,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Test in FreeBSD VM
-      uses: cross-platform-actions/action@v0.25.0
+      uses: cross-platform-actions/action@v0.28.0
       with:
         operating_system: freebsd
-        version: '14.1'
+        version: '14.2'
         run: |
             sudo pkg update
             sudo pkg install -y \
@@ -471,6 +483,7 @@ jobs:
                 libcaca \
                 libcdio-paranoia \
                 libdvdnav \
+                libdisplay-info \
                 libplacebo \
                 libXinerama \
                 libxkbcommon \
@@ -493,19 +506,25 @@ jobs:
                 vulkan-headers \
                 wayland-protocols
             ./ci/build-freebsd.sh
-            meson test -C build
+            if ! meson test -C build; then
+                cat ./build/meson-logs/testlog.txt
+                exit 1
+            fi
 
   msys2:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        sys:
-          - clang32
-          - clang64
-          - mingw32
-          - mingw64
-          - ucrt64
+        include:
+          - sys: "clang64"
+            os: "windows-latest"
+          - sys: "mingw64"
+            os: "windows-latest"
+          - sys: "ucrt64"
+            os: "windows-latest"
+          - sys: "clangarm64"
+            os: "windows-11-arm"
     defaults:
       run:
         shell: msys2 {0}
@@ -522,12 +541,15 @@ jobs:
           update: true
           install: git
           pacboy: >-
+            angleproject:p
             ca-certificates:p
             cc:p
+            cppwinrt:p
             ffmpeg:p
             lcms2:p
             libarchive:p
             libass:p
+            libcdio-paranoia:p
             libdvdnav:p
             libjpeg-turbo:p
             libplacebo:p
@@ -536,15 +558,13 @@ jobs:
             ninja:p
             pkgconf:p
             python:p
+            rst2pdf:p
+            rubberband:p
             shaderc:p
             spirv-cross:p
+            uchardet:p
+            vapoursynth:p
             vulkan-devel:p
-
-      - name: Install dependencies
-        if: ${{ matrix.sys != 'clang32' && matrix.sys != 'mingw32' }}
-        run: |
-          pacboy --noconfirm -S angleproject cppwinrt libcdio-paranoia rst2pdf \
-                                rubberband uchardet vapoursynth
 
       - name: Build with meson
         id: build

@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version Latest
 
 $subprojects = "subprojects"
@@ -53,12 +54,9 @@ shaderc_proj = cmake.subproject('shaderc_cmake', options: opts)
 shaderc_dep = declare_dependency(dependencies: [
     shaderc_proj.dependency('shaderc'),
     shaderc_proj.dependency('shaderc_util'),
-    shaderc_proj.dependency('SPIRV'),
     shaderc_proj.dependency('SPIRV-Tools-static'),
     shaderc_proj.dependency('SPIRV-Tools-opt'),
     shaderc_proj.dependency('glslang'),
-    shaderc_proj.dependency('GenericCodeGen'),
-    shaderc_proj.dependency('MachineIndependent'),
 ])
 meson.override_dependency('shaderc', shaderc_dep)
 "@
@@ -111,19 +109,41 @@ vulkan_dep = vulkan_proj.dependency('vulkan')
 meson.override_dependency('vulkan', vulkan_dep)
 "@
 
+# Manually wrap libjxl for CMAKE_MSVC_RUNTIME_LIBRARY option
+if (-not (Test-Path "$subprojects/libjxl")) {
+    New-Item -Path "$subprojects/libjxl" -ItemType Directory | Out-Null
+}
+Set-Content -Path "$subprojects/libjxl/meson.build" -Value @"
+project('libjxl', 'cpp', version: '0.12.0')
+cmake = import('cmake')
+opts = cmake.subproject_options()
+opts.add_cmake_defines({
+    'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
+    'BUILD_SHARED_LIBS': 'OFF',
+})
+libjxl_proj = cmake.subproject('libjxl-cmake', options: opts)
+libjxl_dep = declare_dependency(dependencies: [
+    libjxl_proj.dependency('jxl'),
+    libjxl_proj.dependency('jxl_base'),
+    libjxl_proj.dependency('jxl_cms'),
+    libjxl_proj.dependency('hwy'),
+    libjxl_proj.dependency('brotlicommon'),
+    libjxl_proj.dependency('brotlidec'),
+    libjxl_proj.dependency('brotlienc'),
+])
+meson.override_dependency('libjxl', libjxl_dep)
+libjxl_threads_dep = libjxl_proj.dependency('jxl_threads')
+meson.override_dependency('libjxl_threads', libjxl_threads_dep)
+"@
+
 $projects = @(
     @{
         Path = "$subprojects/ffmpeg.wrap"
         URL = "https://gitlab.freedesktop.org/gstreamer/meson-ports/ffmpeg.git"
-        Revision = "meson-7.0"
+        Revision = "meson-7.1"
         Provides = @(
-            "libavcodec = libavcodec_dep",
-            "libavdevice = libavdevice_dep",
-            "libavfilter = libavfilter_dep",
-            "libavformat = libavformat_dep",
-            "libavutil = libavutil_dep",
-            "libswresample = libswresample_dep",
-            "libswscale = libswscale_dep"
+            "dependency_names = libavcodec, libavdevice, libavfilter, libavformat, libavutil, libswresample, libswscale"
+            "program_names = ffmpeg"
         )
     },
     @{
@@ -155,6 +175,11 @@ $projects = @(
         URL = "https://github.com/KhronosGroup/Vulkan-Loader"
         Revision = "main"
         Method = "cmake"
+    },
+    @{
+        Path = "$subprojects/libjxl-cmake.wrap"
+        URL = "https://github.com/libjxl/libjxl"
+        Revision = "main"
     }
 )
 
@@ -183,19 +208,23 @@ meson setup build `
     -Dtests=true `
     -Dgpl=true `
     -Dffmpeg:gpl=enabled `
-    -Dffmpeg:tests=disabled `
-    -Dffmpeg:programs=disabled `
+    -Dffmpeg:tests=enabled `
+    -Dffmpeg:programs=enabled `
     -Dffmpeg:sdl2=disabled `
     -Dffmpeg:vulkan=auto `
     -Dffmpeg:libdav1d=enabled `
+    -Dffmpeg:libjxl=enabled `
     -Dlcms2:fastfloat=true `
     -Dlcms2:jpeg=disabled `
     -Dlcms2:tiff=disabled `
+    -Dlibass:test=enabled `
+    -Dlibjpeg-turbo:tests=disabled `
     -Dlibusb:tests=false `
     -Dlibusb:examples=false `
     -Dlibplacebo:demos=false `
     -Dlibplacebo:lcms=enabled `
     -Dlibplacebo:shaderc=enabled `
+    -Dlibplacebo:tests=false `
     -Dlibplacebo:vulkan=enabled `
     -Dlibplacebo:d3d11=enabled `
     -Dxxhash:inline-all=true `

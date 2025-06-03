@@ -1,13 +1,12 @@
 # custom swift targets
 bridge = join_paths(source_root, 'osdep/mac/app_bridge_objc.h')
-header = join_paths(build_root, 'osdep/mac/swift.h')
 module = join_paths(build_root, 'osdep/mac/swift.swiftmodule')
 target = join_paths(build_root, 'osdep/mac/swift.o')
 
 # add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
 
-swift_flags = ['-frontend', '-c', '-sdk', macos_sdk_path,
-               '-enable-objc-interop', '-emit-objc-header', '-parse-as-library',
+swift_flags = ['-c', '-emit-library', '-static', '-sdk', macos_sdk_path,
+               '-emit-objc-header', '-parse-as-library',
                '-Xcc', '-I' + meson.global_source_root() + '/build/subprojects/libplacebo/src/include',
   '-Xcc', '-I' + meson.global_source_root() + '/conan/include']
   
@@ -24,29 +23,11 @@ if get_option('optimization') != '0'
     swift_flags += '-O'
 endif
 
-if macos_10_15_4_features.allowed()
-    swift_flags += ['-D', 'HAVE_MACOS_10_15_4_FEATURES']
-endif
-
-if macos_11_features.allowed()
-    swift_flags += ['-D', 'HAVE_MACOS_11_FEATURES']
-endif
-
-if macos_12_features.allowed()
-    swift_flags += ['-D', 'HAVE_MACOS_12_FEATURES']
-endif
-
-if macos_cocoa_cb.allowed()
-    swift_flags += ['-D', 'HAVE_MACOS_COCOA_CB']
-endif
-
-if macos_touchbar.allowed()
-    swift_flags += ['-D', 'HAVE_MACOS_TOUCHBAR']
-endif
-
-if macos_media_player.allowed()
-    swift_flags += ['-D', 'HAVE_MACOS_MEDIA_PLAYER']
-endif
+foreach feature, allowed: features
+    if allowed
+        swift_flags += ['-D', 'HAVE_@0@'.format(feature.underscorify().to_upper())]
+    endif
+endforeach
 
 if not meson.is_cross_build()
     swift_flags += ['-target', 'arm64-apple-macosx11.0']
@@ -66,7 +47,7 @@ message('***** LIBAVUTIL: ', libavutil_inc)
 swift_compile = [swift_prog, swift_flags, '-module-name', 'swift',
                  '-emit-module-path', '@OUTPUT0@', '-import-objc-header', bridge,
                  '-emit-objc-header-path', '@OUTPUT1@', '-o', '@OUTPUT2@',
-                 '@INPUT@', '-I.', '-I' + source_root,
+                 '@INPUT@', '-I.', '-I' + source_root, '-I' + source_root / 'include',
                 #  '-I' + libplacebo.get_variable('includedir',
                 #             default_value: source_root / 'subprojects' / 'libplacebo' / 'src' / 'include'),
                 #  '-I' + libavutil.get_variable('includedir')]

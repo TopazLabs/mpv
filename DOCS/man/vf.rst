@@ -23,6 +23,8 @@ The exact syntax is:
     See the ``vf`` command (and ``toggle`` sub-command) for further explanations
     and examples.
 
+    This is an object settings list option. See `List Options`_ for details.
+
     The general filter entry syntax is:
 
         ``["@"<label-name>":"] ["!"] <filter-name> [ "=" <filter-parameter-list> ]``
@@ -355,13 +357,14 @@ Available mpv-only filters are:
         Force a specific scaler backend, if applicable. This is a debug option
         and could go away any time.
 
-    ``<alpha=auto|straight|premul>``
+    ``<alpha=auto|straight|premul|none>``
         Set the kind of alpha the video uses. Undefined effect if the image
         format has no alpha channel (could be ignored or cause an error,
         depending on how mpv internals evolve). Setting this may or may not
         cause downstream image processing to treat alpha differently, depending
         on support. With ``convert`` and zimg used, this will convert the alpha.
         libswscale and other FFmpeg components completely ignore this.
+        ``none`` is available only starting from libplacebo vN.344.0.
 
 ``lavfi=graph[:sws-flags[:o=opts]]``
     Filter video using FFmpeg's libavfilter.
@@ -722,6 +725,8 @@ Available mpv-only filters are:
         which algorithm is actually selected. ``none`` always falls back. On
         most if not all hardware, this option will probably do nothing, because
         a video processor usually supports all modes or none.
+    ``nvidia-true-hdr``
+        Enable NVIDIA RTX Video HDR processing.
 
 ``fingerprint=...``
     Compute video frame fingerprints and provide them as metadata. Actually, it
@@ -838,4 +843,3 @@ Available mpv-only filters are:
         Do not use this with ``--vo=gpu``. It will apply filtering twice, since
         most ``--vo=gpu`` options are unconditionally applied to the ``gpu``
         filter. There is no mechanism in mpv to prevent this.
-
