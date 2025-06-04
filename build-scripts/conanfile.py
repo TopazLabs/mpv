@@ -38,15 +38,22 @@ class MPVConan(ConanFile):
     }
 
     def configure(self):
-        self.options["freetype"].shared = True
-        self.options["freetype"].with_brotli = True
-        self.options["freetype"].with_png = True
         
-        self.options["harfbuzz"].shared = True
-        self.options["harfbuzz"].with_glib_iconv_shared = True
+        if self.settings.os == "Macos":
+            self.options["freetype"].shared = True
+            self.options["freetype"].with_brotli = True
+            self.options["freetype"].with_png = True
+            
+            self.options["harfbuzz"].shared = True
+            self.options["harfbuzz"].with_glib_iconv_shared = True
 
-        self.options["libiconv"].shared = True
-        self.options["lcms"].shared = True
+            self.options["libiconv"].shared = True
+            self.options["lcms"].shared = True
+        if self.settings.os == "Windows":
+            # self.options["freetype"].shared = True
+            self.options["harfbuzz"].for_mpv = True
+            self.options["lcms-mt"].shared = True
+            self.options["libiconv-mt"].shared = True
 
         
         self.settings.rm_safe("compiler.cppstd")
@@ -55,14 +62,24 @@ class MPVConan(ConanFile):
 
     def requirements(self):
         # self.requires("topaz-ffmpeg/7.0.2.4")
-        self.requires("topaz-ffmpeg/7.1.0.10")
-        self.requires("zlib/1.2.13")
-        self.requires("lcms/2.14")
-        self.requires("libiconv/1.17") # new shared
-        self.requires("freetype/2.13.2")
-        self.requires("fribidi/1.0.13@josh/mpv")
-        self.requires("harfbuzz/8.3.0@josh/mpv") # new shared (with new options... also in glib)
-    
+        if self.settings.os == "Macos":
+            self.requires("topaz-ffmpeg/7.1.0.10")
+            self.requires("zlib/1.2.13")
+            self.requires("lcms/2.14")
+            self.requires("libiconv/1.17") # new shared
+            self.requires("freetype/2.13.2")
+            self.requires("fribidi/1.0.13@josh/mpv")
+            self.requires("harfbuzz/8.3.0@josh/mpv") # new shared (with new options... also in glib)
+        if self.settings.os == "Windows":
+            self.requires("topaz-ffmpeg/7.1.0.12")
+            self.requires("zlib-mt/1.2.13")
+            self.requires("lcms-mt/2.14")
+            self.requires("libiconv-mt/1.17")
+            # self.requires("freetype/2.13.2@josh/mpv-win2")
+            self.requires("fribidi/1.0.13")
+            self.requires("harfbuzz/8.3.0@josh/mpv-win3")
+            # self.requires("libpng/1.6.40")
+        
     def generate(self):
         for dep in self.dependencies.values():
             if dep.package_folder:

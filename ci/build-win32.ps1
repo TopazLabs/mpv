@@ -1,5 +1,4 @@
 $ErrorActionPreference = "Stop"
-$PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version Latest
 
 $subprojects = "subprojects"
@@ -54,9 +53,12 @@ shaderc_proj = cmake.subproject('shaderc_cmake', options: opts)
 shaderc_dep = declare_dependency(dependencies: [
     shaderc_proj.dependency('shaderc'),
     shaderc_proj.dependency('shaderc_util'),
+    shaderc_proj.dependency('SPIRV'),
     shaderc_proj.dependency('SPIRV-Tools-static'),
     shaderc_proj.dependency('SPIRV-Tools-opt'),
     shaderc_proj.dependency('glslang'),
+    shaderc_proj.dependency('GenericCodeGen'),
+    shaderc_proj.dependency('MachineIndependent'),
 ])
 meson.override_dependency('shaderc', shaderc_dep)
 "@
@@ -109,48 +111,26 @@ vulkan_dep = vulkan_proj.dependency('vulkan')
 meson.override_dependency('vulkan', vulkan_dep)
 "@
 
-# Manually wrap libjxl for CMAKE_MSVC_RUNTIME_LIBRARY option
-if (-not (Test-Path "$subprojects/libjxl")) {
-    New-Item -Path "$subprojects/libjxl" -ItemType Directory | Out-Null
-}
-Set-Content -Path "$subprojects/libjxl/meson.build" -Value @"
-project('libjxl', 'cpp', version: '0.12.0')
-cmake = import('cmake')
-opts = cmake.subproject_options()
-opts.add_cmake_defines({
-    'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
-    'BUILD_SHARED_LIBS': 'OFF',
-})
-libjxl_proj = cmake.subproject('libjxl-cmake', options: opts)
-libjxl_dep = declare_dependency(dependencies: [
-    libjxl_proj.dependency('jxl'),
-    libjxl_proj.dependency('jxl_base'),
-    libjxl_proj.dependency('jxl_cms'),
-    libjxl_proj.dependency('hwy'),
-    libjxl_proj.dependency('brotlicommon'),
-    libjxl_proj.dependency('brotlidec'),
-    libjxl_proj.dependency('brotlienc'),
-])
-meson.override_dependency('libjxl', libjxl_dep)
-libjxl_threads_dep = libjxl_proj.dependency('jxl_threads')
-meson.override_dependency('libjxl_threads', libjxl_threads_dep)
-"@
-
 $projects = @(
-    @{
-        Path = "$subprojects/ffmpeg.wrap"
-        URL = "https://gitlab.freedesktop.org/gstreamer/meson-ports/ffmpeg.git"
-        Revision = "meson-7.1"
-        Provides = @(
-            "dependency_names = libavcodec, libavdevice, libavfilter, libavformat, libavutil, libswresample, libswscale"
-            "program_names = ffmpeg"
-        )
-    },
-    @{
-        Path = "$subprojects/libass.wrap"
-        URL = "https://github.com/libass/libass"
-        Revision = "master"
-    },
+    # @{
+    #     Path = "$subprojects/ffmpeg.wrap"
+    #     URL = "https://gitlab.freedesktop.org/gstreamer/meson-ports/ffmpeg.git"
+    #     Revision = "meson-7.0"
+    #     Provides = @(
+    #         "libavcodec = libavcodec_dep",
+    #         "libavdevice = libavdevice_dep",
+    #         "libavfilter = libavfilter_dep",
+    #         "libavformat = libavformat_dep",
+    #         "libavutil = libavutil_dep",
+    #         "libswresample = libswresample_dep",
+    #         "libswscale = libswscale_dep"
+    #     )
+    # },
+    # @{
+    #     Path = "$subprojects/libass.wrap"
+    #     URL = "https://github.com/libass/libass"
+    #     Revision = "master"
+    # },
     @{
         Path = "$subprojects/libplacebo.wrap"
         URL = "https://code.videolan.org/videolan/libplacebo.git"
@@ -169,18 +149,13 @@ $projects = @(
         URL = "https://github.com/KhronosGroup/SPIRV-Cross"
         Revision = "main"
         Method = "cmake"
-    },
-    @{
-        Path = "$subprojects/vulkan-loader.wrap"
-        URL = "https://github.com/KhronosGroup/Vulkan-Loader"
-        Revision = "main"
-        Method = "cmake"
-    },
-    @{
-        Path = "$subprojects/libjxl-cmake.wrap"
-        URL = "https://github.com/libjxl/libjxl"
-        Revision = "main"
     }
+    # @{
+    #     Path = "$subprojects/vulkan-loader.wrap"
+    #     URL = "https://github.com/KhronosGroup/Vulkan-Loader"
+    #     Revision = "main"
+    #     Method = "cmake"
+    # }
 )
 
 foreach ($project in $projects) {
@@ -201,45 +176,69 @@ clone-recursive = true
     Set-Content -Path $project.Path -Value $content
 }
 
-meson setup build `
+# -Ddefault_library=static `
+
+# -Dgpl=true `
+# -Dffmpeg:gpl=enabled `
+# -Dffmpeg:tests=disabled `
+# -Dffmpeg:programs=disabled `
+# -Dffmpeg:sdl2=disabled `
+# -Dffmpeg:vulkan=auto `
+# -Dffmpeg:libdav1d=enabled `
+
+# -Dlcms2:fastfloat=true `
+# -Dlcms2:jpeg=disabled `
+# -Dlcms2:tiff=disabled `
+
+# -Dluajit:amalgam=true `
+
+# -Djavascript=enabled `
+# -Dlua=luajit `
+
+    # -Dtests=true `
+
+#     
+
+# -Dvulkan=enabled `
+
+meson setup build-final `
+    --native-file=nativefile.ini `
     --wrap-mode=forcefallback `
-    -Ddefault_library=static `
+    -Ddefault_library=shared `
+    -Db_vscrt=mt `
     -Dlibmpv=true `
-    -Dtests=true `
-    -Dgpl=true `
-    -Dffmpeg:gpl=enabled `
-    -Dffmpeg:tests=enabled `
-    -Dffmpeg:programs=enabled `
-    -Dffmpeg:sdl2=disabled `
-    -Dffmpeg:vulkan=auto `
-    -Dffmpeg:libdav1d=enabled `
-    -Dffmpeg:libjxl=enabled `
+    -Dgpl=false `
+    -Djpeg=disabled `
+    -Dtests=false `
+    -Dlibass:asm=enabled `
+    -Dlibass:fontconfig=disabled `
     -Dlcms2:fastfloat=true `
     -Dlcms2:jpeg=disabled `
     -Dlcms2:tiff=disabled `
-    -Dlibass:test=enabled `
-    -Dlibjpeg-turbo:tests=disabled `
     -Dlibusb:tests=false `
     -Dlibusb:examples=false `
     -Dlibplacebo:demos=false `
     -Dlibplacebo:lcms=enabled `
     -Dlibplacebo:shaderc=enabled `
-    -Dlibplacebo:tests=false `
-    -Dlibplacebo:vulkan=enabled `
     -Dlibplacebo:d3d11=enabled `
+    -Dlibplacebo:dovi=disabled `
+    -Dlibplacebo:libdovi=disabled `
+    -Dlibplacebo:xxhash=disabled `
+    -Dlibplacebo:vulkan=disabled `
     -Dxxhash:inline-all=true `
     -Dxxhash:cli=false `
-    -Dluajit:amalgam=true `
     -Dd3d11=enabled `
-    -Dvulkan=enabled `
-    -Djavascript=enabled `
-    -Dwin32-smtc=enabled `
-    -Dlua=luajit `
+    -Dvulkan=disabled `
+    -Dlua=disabled `
     -Ddrm=disabled `
     -Dlibarchive=disabled `
     -Drubberband=disabled `
     -Dwayland=disabled `
-    -Dx11=disabled
-ninja -C build mpv.exe mpv.com libmpv.a
-cp ./build/subprojects/vulkan-loader/vulkan.dll ./build/vulkan-1.dll
-./build/mpv.com -v --no-config
+    -Dx11=disabled `
+    -Dwin32-smtc=disabled `
+    --prefix="C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\build-final"
+# ninja -C build-final mpv.exe mpv.com libmpv.a
+ninja -C build-final mpv.exe mpv.com mpv-2.dll
+# ninja -C build-final
+# cp ./build/subprojects/vulkan-loader/vulkan.dll ./build/vulkan-1.dll
+# ./build-final/mpv.com -v --no-config

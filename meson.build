@@ -38,7 +38,7 @@ cc = meson.get_compiler('c')
 
 # ffmpeg
 if not get_option('mac')
-ffmpeg_path = 'C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\topaz-ffmpeg' 
+ffmpeg_path = 'C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\topaz-ffmpeg' 
 ffmpeg_lib_dll = ffmpeg_path + '\\bin'
 ffmpeg_inc = include_directories('conan\\lib3rdparty\\topaz-ffmpeg\\include\\libavutil')
 
@@ -73,11 +73,69 @@ endif
 # if get_option('mac')
 # endif
 
+# libpng configuration
+if not get_option('mac')
+libpng = cc.find_library('libpng16_static', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\libpng\\lib'])
+# features += {'libpng': libpng.found()}
+# if features['libpng']
+#     dependencies += libpng
+# endif
+endif
+
+if get_option('mac')
+libpng = cc.find_library('libpng16_static', dirs:[meson.global_source_root() + '/conan/lib'])
+# features += {'libpng': libpng.found()}
+# if features['libpng']
+#     dependencies += libpng
+# endif
+endif
+
+# Add missing static library dependencies for freetype and libpng
+if not get_option('mac')
+# Add zlib (required by freetype and libpng)
+zlib_static = cc.find_library('zlib', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\zlib-mt\\lib'])
+
+# Add Brotli libraries (required by freetype for WOFF2 support)
+brotlidec = cc.find_library('brotlidec', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\brotli\\lib'])
+brotlicommon = cc.find_library('brotlicommon', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\brotli\\lib'])
+
+# Add bzip2 (required by freetype)
+bzip2 = cc.find_library('bz2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\bzip2\\lib'])
+
+# Add these to dependencies
+# dependencies += [zlib_static, brotlidec, brotlicommon, bzip2]
+endif
+
+# if get_option('mac')
+# # Add zlib (required by freetype and libpng) 
+# zlib_static = cc.find_library('libz', dirs:[meson.global_source_root() + '/conan/lib'])
+
+# # Add Brotli libraries (required by freetype for WOFF2 support)
+# brotlidec = cc.find_library('libbrotlidec', dirs:[meson.global_source_root() + '/conan/lib'])
+# brotlicommon = cc.find_library('libbrotlicommon', dirs:[meson.global_source_root() + '/conan/lib'])
+
+# # Add bzip2 (required by freetype)
+# bzip2 = cc.find_library('libbz2', dirs:[meson.global_source_root() + '/conan/lib'])
+
+# # Add these to dependencies
+# dependencies += [zlib_static, brotlidec, brotlicommon, bzip2]
+# endif
+
+# # Add Windows-specific libraries for static linking
+# if win32
+#     # Additional Windows libraries needed for static libpng and freetype
+#     dependencies += [
+#         cc.find_library('msvcrt', required: false),
+#         cc.find_library('kernel32', required: false),
+#         cc.find_library('advapi32', required: false)
+#     ]
+# endif
+
 if not get_option('mac')
 libplacebo = dependency('libplacebo', version: '>=6.338.2',
                 default_options: ['default_library=shared', 'demos=false', 'b_vscrt=mt'])
 # libass = dependency('libass', version: '>= 0.12.2')
-# libass = cc.find_library('libass', static:true, dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\libass\\lib'])
+# libass = cc.find_library('libass', static:true, dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\libass\\lib'])
 libass = dependency('libass', version: '>= 0.12.2',
                 default_options: ['default_library=shared', 'b_vscrt=mt'])
 endif
@@ -86,7 +144,7 @@ libplacebo = dependency('libplacebo', version: '>=6.338.2',
                 default_options: ['default_library=shared', 'demos=false'],
                 fallback: ['libplacebo'])
 # libass = dependency('libass', version: '>= 0.12.2')
-# libass = cc.find_library('libass', static:true, dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\libass\\lib'])
+# libass = cc.find_library('libass', static:true, dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\libass\\lib'])
 libass = dependency('libass', version: '>= 0.12.2',
                 default_options: ['default_library=shared'])
 endif
@@ -101,7 +159,30 @@ dependencies = [libass,
                 libavutil,
                 libplacebo,
                 libswresample,
-                libswscale]
+                libswscale,
+                libpng,
+                zlib_static,
+                brotlidec,
+                brotlicommon,
+                bzip2]
+
+# Add Windows C runtime libraries needed for static linking
+if not get_option('mac')
+    dependencies += [
+        cc.find_library('ucrt', required: false),
+        cc.find_library('msvcrt', required: false),
+        cc.find_library('oldnames', required: false)
+    ]
+endif
+
+# Add additional Windows libraries for missing C runtime symbols
+if not get_option('mac')
+    dependencies += [
+        cc.find_library('libvcruntime', required: false),
+        cc.find_library('legacy_stdio_definitions', required: false),
+        cc.find_library('libcmt', required: false)
+    ]
+endif
 
 # Keeps track of all enabled/disabled features
 features = {
@@ -110,6 +191,7 @@ features = {
     'gpl': get_option('gpl'),
     'libass': true,
     'libplacebo': true,
+    'libpng': true,
 }
 
 
@@ -718,9 +800,9 @@ if features['javascript']
 endif
 
 
-# lcms2 = cc.find_library('lcms2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\lcms-mt\\lib'] )
+# lcms2 = cc.find_library('lcms2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\lcms-mt\\lib'] )
 if not get_option('mac')
-lcms2 = cc.find_library('lcms2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\conan\\lib3rdparty\\lcms-mt\\lib'],
+lcms2 = cc.find_library('lcms2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\lcms-mt\\lib'],
                         required: get_option('lcms2'))
 endif
 
@@ -1848,25 +1930,22 @@ major = client_h_define.split('|')[0].split('<<')[0].strip('() ')
 minor = client_h_define.split('|')[1].strip('() ')
 client_api_version = major + '.' + minor + '.0'
 
-<<<<<<< HEAD
 if not get_option('mac')
-libmpv = shared_library('mpv', sources, dependencies: dependencies, gnu_symbol_visibility: 'hidden',
-=======
 libmpv = library('mpv', sources, dependencies: dependencies, gnu_symbol_visibility: 'hidden',
-                 include_directories: incdir_public,
->>>>>>> master
-                 link_args: cc.get_supported_link_arguments(['-Wl,-Bsymbolic']),
-                 version: client_api_version, install: get_option('libmpv'),
-                 build_by_default: get_option('libmpv'),
-                 include_directories:[
+                 include_directories: [
+                    incdir_public,
                     include_directories('conan\\lib3rdparty\\topaz-ffmpeg\\include'),
                     # include_directories('conan\\lib3rdparty\\libass\\include'),
                     include_directories('conan\\lib3rdparty\\lcms-mt\\include'),
                     include_directories('conan\\lib3rdparty\\freetype\\include'),
                     include_directories('conan\\lib3rdparty\\libiconv-mt\\include'),
-                    # include_directories('conan\\lib3rdparty\\libpng-mt\\include'),
+                    include_directories('conan\\lib3rdparty\\libpng\\include'),
                     include_directories('conan\\lib3rdparty\\zimg\\include'),
-                    include_directories('conan\\lib3rdparty\\zlib-mt\\include')])
+                    include_directories('conan\\lib3rdparty\\zlib-mt\\include')
+                 ],
+                 link_args: cc.get_supported_link_arguments(['-Wl,-Bsymbolic']),
+                 version: client_api_version, install: get_option('libmpv'),
+                 build_by_default: get_option('libmpv'))
 endif
 
 if get_option('mac')
@@ -1875,6 +1954,7 @@ libmpv = shared_library('mpv', sources, dependencies: dependencies, gnu_symbol_v
                  version: client_api_version, install: get_option('libmpv'),
                  build_by_default: get_option('libmpv'),
                  include_directories:[
+                    incdir_public,
                     include_directories('conan/include/'),
                     include_directories('conan/include/libavcodec'),
                     include_directories('conan/include/libavdevice'),
@@ -1932,12 +2012,8 @@ if get_option('cplayer')
     install_data('etc/mpv-symbolic.svg', install_dir: join_paths(hicolor_dir, 'symbolic', 'apps'))
 
     mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
-<<<<<<< HEAD
-                     win_subsystem: 'windows', install: true,
+                     win_subsystem: get_option('win32-subsystem'), install: true,
                      install_rpath : '@executable_path/conan/lib')
-=======
-                     win_subsystem: get_option('win32-subsystem'), install: true)
->>>>>>> master
 
     if win32 and get_option('win32-subsystem') != 'console'
         wrapper_sources= 'osdep/win32-console-wrapper.c'
@@ -1993,3 +2069,4 @@ summary({'d3d11': features['d3d11'],
          'wayland': features['wayland'],
          'x11': features['x11']},
          bool_yn: true)
+
