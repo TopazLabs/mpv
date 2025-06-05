@@ -13,7 +13,6 @@ fi
 # --cross-file ci/x86_64-cross-file.txt \ # add this if you want to cross compile
 # --cross-file ci/x86_64-cross-file.txt \
 meson setup build \
-    --cross-file ci/x86_64-cross-file.txt \
     --wrap-mode=forcefallback \
     -Dprefix="${MPV_INSTALL_PREFIX}" \
     -Ddefault_library=shared \

@@ -63,7 +63,7 @@ class MPVConan(ConanFile):
     def requirements(self):
         # self.requires("topaz-ffmpeg/7.0.2.4")
         if self.settings.os == "Macos":
-            self.requires("topaz-ffmpeg/7.1.0.10")
+            self.requires("topaz-ffmpeg/7.1.0.13")
             self.requires("zlib/1.2.13")
             self.requires("lcms/2.14")
             self.requires("libiconv/1.17") # new shared
@@ -71,7 +71,7 @@ class MPVConan(ConanFile):
             self.requires("fribidi/1.0.13@josh/mpv")
             self.requires("harfbuzz/8.3.0@josh/mpv") # new shared (with new options... also in glib)
         if self.settings.os == "Windows":
-            self.requires("topaz-ffmpeg/7.1.0.12")
+            self.requires("topaz-ffmpeg/7.1.0.13")
             self.requires("zlib-mt/1.2.13")
             self.requires("lcms-mt/2.14")
             self.requires("libiconv-mt/1.17")

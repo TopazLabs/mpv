@@ -5,6 +5,15 @@ target = join_paths(build_root, 'osdep/mac/swift.o')
 
 # add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
 
+# if host_machine.system() == 'darwin'
+#     if meson.is_cross_build()
+#         add_global_link_arguments('-mmacosx-version-min=11.0', language: ['c', 'cpp', 'objc', 'objcpp'])
+#         add_global_arguments('-mmacosx-version-min=11.0', language: ['c', 'cpp', 'objc', 'objcpp'])
+#         add_global_arguments(['-arch','x86_64'], language: ['c', 'cpp', 'objc', 'objcpp', 'swift'])
+#         add_global_link_arguments(['-arch','x86_64'], language: ['c', 'cpp', 'objc', 'objcpp', 'swift'])
+#     endif
+# endif
+
 swift_flags = ['-c', '-emit-library', '-static', '-sdk', macos_sdk_path,
                '-emit-objc-header', '-parse-as-library',
                '-Xcc', '-I' + meson.global_source_root() + '/build/subprojects/libplacebo/src/include',
@@ -32,7 +41,7 @@ endforeach
 if not meson.is_cross_build()
     swift_flags += ['-target', 'arm64-apple-macosx11.0']
 elif meson.is_cross_build()
-    swift_flags += ['-target', 'x86_64-apple-macosx10.15']
+    swift_flags += ['-target', 'x86_64-apple-macosx11.0']
 endif
 
 extra_flags = get_option('swift-flags').split()

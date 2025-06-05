@@ -21,8 +21,8 @@ if host_machine.system() == 'darwin'
         add_global_link_arguments('-mmacosx-version-min=11', language: ['c', 'cpp', 'objc', 'objcpp'])
         add_global_arguments('-mmacosx-version-min=11', language: ['c', 'cpp', 'objc', 'objcpp'])
     elif meson.is_cross_build()
-        add_global_link_arguments('-mmacosx-version-min=10.15', language: ['c', 'cpp', 'objc', 'objcpp'])
-        add_global_arguments('-mmacosx-version-min=10.15', language: ['c', 'cpp', 'objc', 'objcpp'])
+        add_global_link_arguments('-mmacosx-version-min=11.0', language: ['c', 'cpp', 'objc', 'objcpp'])
+        add_global_arguments('-mmacosx-version-min=11.0', language: ['c', 'cpp', 'objc', 'objcpp'])
         add_global_arguments(['-arch','x86_64'], language: ['c', 'cpp', 'objc', 'objcpp', 'swift'])
         add_global_link_arguments(['-arch','x86_64'], language: ['c', 'cpp', 'objc', 'objcpp', 'swift'])
     endif
@@ -82,13 +82,13 @@ libpng = cc.find_library('libpng16_static', dirs:['C:\\Users\\joshy\\Desktop\\to
 # endif
 endif
 
-if get_option('mac')
-libpng = cc.find_library('libpng16_static', dirs:[meson.global_source_root() + '/conan/lib'])
-# features += {'libpng': libpng.found()}
-# if features['libpng']
-#     dependencies += libpng
+# if get_option('mac')
+# libpng = cc.find_library('libpng16_static', dirs:[meson.global_source_root() + '/conan/lib'])
+# # features += {'libpng': libpng.found()}
+# # if features['libpng']
+# #     dependencies += libpng
+# # endif
 # endif
-endif
 
 # Add missing static library dependencies for freetype and libpng
 if not get_option('mac')
@@ -159,12 +159,7 @@ dependencies = [libass,
                 libavutil,
                 libplacebo,
                 libswresample,
-                libswscale,
-                libpng,
-                zlib_static,
-                brotlidec,
-                brotlicommon,
-                bzip2]
+                libswscale]
 
 # Add Windows C runtime libraries needed for static linking
 if not get_option('mac')
@@ -2013,7 +2008,7 @@ if get_option('cplayer')
 
     mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
                      win_subsystem: get_option('win32-subsystem'), install: true,
-                     install_rpath : '@executable_path/conan/lib')
+                     install_rpath : '@executable_path/../Frameworks')
 
     if win32 and get_option('win32-subsystem') != 'console'
         wrapper_sources= 'osdep/win32-console-wrapper.c'

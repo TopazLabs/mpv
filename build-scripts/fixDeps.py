@@ -19,19 +19,25 @@ def getDeps(lib):
 def fixDeps(path):
     name = os.path.basename(path)
     deps = getDeps(path)
+
+    print(f"----- fixing {name} -----")
     print(deps)
     for dep in deps:
         dname = os.path.basename(dep)
+        print(f"++ dep: {dep} ++")
         if dname == name:
-            print("change {}".format(dname))
+            print(f"#### change {dname} from {name}")
             if "mpv" in name: continue
             subprocess.check_output(['install_name_tool', '-change', '@executable_path/../Frameworks/' + name, path, f"{MPV_INSTALL_PREFIX}/bin/mpv"])
             # subprocess.check_output(['install_name_tool', '-id', '@executable_path/../Frameworks/' + name, path, f"{MPV_INSTALL_PREFIX}/bin/mpv"])
             # subprocess.check_output(['install_name_tool', '-id', '@executable_path/../Frameworks/' + name, path])
         else:
-            print(f"no issue: {dname}")
+            print(f"no issue: {name}")
+    
+    print()
         
-    # subprocess.check_output(['install_name_tool', '-add_rpath', '@executable_path/../Frameworks/', f"{MPV_INSTALL_PREFIX}/bin/mpv"])
+    # Add all possible rpaths for conan libraries
+    # subprocess.check_output(['install_name_tool', '-add_rpath', '@executable_path/../Frameworks', f"{MPV_INSTALL_PREFIX}/bin/mpv"])
 
 for file in sys.argv[1:]:
     fixDeps(file)
