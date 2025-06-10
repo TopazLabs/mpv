@@ -245,12 +245,13 @@ static int cfg_include(void *ctx, char *filename, int flags)
 // Other locale stuff might break too, but probably isn't too bad.
 static bool check_locale(void)
 {
-    char *name = setlocale(LC_NUMERIC, NULL);
-    return !name || strcmp(name, "C") == 0 || strcmp(name, "C.UTF-8") == 0;
+    wchar_t *name = _wsetlocale(LC_NUMERIC, NULL);
+    return !name || wcscmp(name, L"C") == 0 || wcscmp(name, L"C.UTF-8") == 0;
 }
 
 struct MPContext *mp_create(void)
 {
+    fprintf(stderr, "about to call check_locale\n");
     if (!check_locale()) {
         // Normally, we never print anything (except if the "terminal" option
         // is enabled), so this is an exception.

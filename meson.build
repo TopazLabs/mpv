@@ -9,7 +9,7 @@ project('mpv',
             'buildtype=debugoptimized',
             'b_lundef=false',
             'c_std=c11',
-            'cpp_std=c++20',
+            'cpp_std=c++17',
             'cpp_eh=default',
             'warning_level=2'
         ]
@@ -28,6 +28,9 @@ if host_machine.system() == 'darwin'
     endif
 endif
 
+# add_project_arguments('-std:c++20', language: ['cpp'])
+# add_project_arguments('-fdelayed-template-parsing', language: ['cpp'])
+
 
 build_root = meson.project_build_root()
 source_root = meson.project_source_root()
@@ -35,10 +38,13 @@ python = find_program('python3')
 
 # compiler stuff
 cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+add_project_arguments(cpp.get_supported_arguments('-std:c++17'), language: 'cpp')
+
 
 # ffmpeg
 if not get_option('mac')
-ffmpeg_path = 'C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\topaz-ffmpeg' 
+ffmpeg_path = meson.global_source_root() + '\\conan\\lib3rdparty\\topaz-ffmpeg' 
 ffmpeg_lib_dll = ffmpeg_path + '\\bin'
 ffmpeg_inc = include_directories('conan\\lib3rdparty\\topaz-ffmpeg\\include\\libavutil')
 
@@ -69,57 +75,6 @@ libswresample = cc.find_library('libswresample', dirs:[lib_path] )
 libswscale = cc.find_library('libswscale', dirs:[lib_path] )
 endif
 
-
-# if get_option('mac')
-# endif
-
-# libpng configuration
-if not get_option('mac')
-libpng = cc.find_library('libpng16_static', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\libpng\\lib'])
-# features += {'libpng': libpng.found()}
-# if features['libpng']
-#     dependencies += libpng
-# endif
-endif
-
-# if get_option('mac')
-# libpng = cc.find_library('libpng16_static', dirs:[meson.global_source_root() + '/conan/lib'])
-# # features += {'libpng': libpng.found()}
-# # if features['libpng']
-# #     dependencies += libpng
-# # endif
-# endif
-
-# Add missing static library dependencies for freetype and libpng
-if not get_option('mac')
-# Add zlib (required by freetype and libpng)
-zlib_static = cc.find_library('zlib', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\zlib-mt\\lib'])
-
-# Add Brotli libraries (required by freetype for WOFF2 support)
-brotlidec = cc.find_library('brotlidec', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\brotli\\lib'])
-brotlicommon = cc.find_library('brotlicommon', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\brotli\\lib'])
-
-# Add bzip2 (required by freetype)
-bzip2 = cc.find_library('bz2', dirs:['C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\conan\\lib3rdparty\\bzip2\\lib'])
-
-# Add these to dependencies
-# dependencies += [zlib_static, brotlidec, brotlicommon, bzip2]
-endif
-
-# if get_option('mac')
-# # Add zlib (required by freetype and libpng) 
-# zlib_static = cc.find_library('libz', dirs:[meson.global_source_root() + '/conan/lib'])
-
-# # Add Brotli libraries (required by freetype for WOFF2 support)
-# brotlidec = cc.find_library('libbrotlidec', dirs:[meson.global_source_root() + '/conan/lib'])
-# brotlicommon = cc.find_library('libbrotlicommon', dirs:[meson.global_source_root() + '/conan/lib'])
-
-# # Add bzip2 (required by freetype)
-# bzip2 = cc.find_library('libbz2', dirs:[meson.global_source_root() + '/conan/lib'])
-
-# # Add these to dependencies
-# dependencies += [zlib_static, brotlidec, brotlicommon, bzip2]
-# endif
 
 # # Add Windows-specific libraries for static linking
 # if win32
@@ -161,23 +116,23 @@ dependencies = [libass,
                 libswresample,
                 libswscale]
 
-# Add Windows C runtime libraries needed for static linking
-if not get_option('mac')
-    dependencies += [
-        cc.find_library('ucrt', required: false),
-        cc.find_library('msvcrt', required: false),
-        cc.find_library('oldnames', required: false)
-    ]
-endif
+# # Add Windows C runtime libraries needed for static linking
+# if not get_option('mac')
+#     dependencies += [
+#         cc.find_library('ucrt', required: false),
+#         cc.find_library('msvcrt', required: false),
+#         cc.find_library('oldnames', required: false)
+#     ]
+# endif
 
-# Add additional Windows libraries for missing C runtime symbols
-if not get_option('mac')
-    dependencies += [
-        cc.find_library('libvcruntime', required: false),
-        cc.find_library('legacy_stdio_definitions', required: false),
-        cc.find_library('libcmt', required: false)
-    ]
-endif
+# # Add additional Windows libraries for missing C runtime symbols
+# if not get_option('mac')
+#     dependencies += [
+#         cc.find_library('libvcruntime', required: false),
+#         cc.find_library('legacy_stdio_definitions', required: false),
+#         cc.find_library('libcmt', required: false)
+#     ]
+# endif
 
 # Keeps track of all enabled/disabled features
 features = {
@@ -186,7 +141,6 @@ features = {
     'gpl': get_option('gpl'),
     'libass': true,
     'libplacebo': true,
-    'libpng': true,
 }
 
 
@@ -468,6 +422,14 @@ mswin_flags += '-D_UCRT_NOISY_NAN'
 if host_machine.system() == 'windows'
     flags += [mswin_flags]
     flags_c += ['-U__STRICT_ANSI__']
+    # # Force static CRT linking to prevent runtime dependency issues
+    # if cc.get_id() == 'clang-cl' or cc.get_id() == 'msvc'
+    #     # Use static MSVC runtime
+    #     flags += ['/MT']
+    # elif cc.get_id() in ['gcc', 'clang']
+    #     # Use static libgcc and static CRT
+    #     link_flags += ['-static-libgcc', '-static', '-Wl,-Bstatic', '-lmsvcrt', '-Wl,-Bdynamic']
+    # endif
 endif
 
 if host_machine.system() == 'cygwin'
@@ -541,7 +503,8 @@ add_project_arguments(flags_c, language: ['c', 'objc'])
 add_project_link_arguments(link_flags, language: ['c', 'cpp', 'objc'])
 
 add_project_arguments('-D_SILENCE_CLANG_COROUTINE_MESSAGE', language: ['cpp', 'c'])
-add_project_arguments('/clang:-std=c++20', language: ['cpp'])
+# add_project_arguments('-std:c++20', language: ['cpp'])
+# add_project_arguments('-fdelayed-template-parsing', language: ['cpp'])
 
 
 
@@ -1934,7 +1897,6 @@ libmpv = library('mpv', sources, dependencies: dependencies, gnu_symbol_visibili
                     include_directories('conan\\lib3rdparty\\lcms-mt\\include'),
                     include_directories('conan\\lib3rdparty\\freetype\\include'),
                     include_directories('conan\\lib3rdparty\\libiconv-mt\\include'),
-                    include_directories('conan\\lib3rdparty\\libpng\\include'),
                     include_directories('conan\\lib3rdparty\\zimg\\include'),
                     include_directories('conan\\lib3rdparty\\zlib-mt\\include')
                  ],
@@ -2006,9 +1968,16 @@ if get_option('cplayer')
                  rename: 'mpv.svg')
     install_data('etc/mpv-symbolic.svg', install_dir: join_paths(hicolor_dir, 'symbolic', 'apps'))
 
-    mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
+    if build_machine.system() == 'windows'
+        mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
                      win_subsystem: get_option('win32-subsystem'), install: true,
+                     install_rpath : '@executable_path/conan/lib')
+    endif
+    if build_machine.system() == 'darwin'
+        mpv = executable('mpv', main_fn_source, objects: libmpv.extract_all_objects(recursive: true), dependencies: dependencies,
+                     install: true,
                      install_rpath : '@executable_path/../Frameworks')
+    endif
 
     if win32 and get_option('win32-subsystem') != 'console'
         wrapper_sources= 'osdep/win32-console-wrapper.c'

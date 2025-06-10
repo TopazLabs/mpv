@@ -200,9 +200,9 @@ clone-recursive = true
 #     
 
 # -Dvulkan=enabled `
+# --native-file=nativefile.ini `
 
 meson setup build-final `
-    --native-file=nativefile.ini `
     --wrap-mode=forcefallback `
     -Ddefault_library=shared `
     -Db_vscrt=mt `
@@ -236,9 +236,11 @@ meson setup build-final `
     -Dwayland=disabled `
     -Dx11=disabled `
     -Dwin32-smtc=disabled `
-    --prefix="C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv2\\build-final"
+    --prefix="C:\\Users\\joshy\\Desktop\\topaz-code\\others\\mpv\\build-final"
 # ninja -C build-final mpv.exe mpv.com libmpv.a
-ninja -C build-final mpv.exe mpv.com mpv-2.dll
+ninja -C build-final mpv-2.dll
+ninja -C build-final mpv.exe 
+# ninja -C build-final mpv.com
 # ninja -C build-final
 # cp ./build/subprojects/vulkan-loader/vulkan.dll ./build/vulkan-1.dll
 # ./build-final/mpv.com -v --no-config
