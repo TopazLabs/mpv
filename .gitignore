@@ -4,3 +4,6 @@
 
 conan/
 **/__pycache__/
+.DS_Store
+builds-arm
+subprojects/

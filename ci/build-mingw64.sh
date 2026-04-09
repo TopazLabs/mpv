@@ -159,7 +159,7 @@ _ffmpeg () {
     [ -d ffmpeg ] || $gitclone https://github.com/FFmpeg/FFmpeg.git ffmpeg
     builddir ffmpeg
     local args=(
-        --pkg-config=pkg-config --target-os=mingw32 --enable-gpl
+        --pkg-config=pkg-config --target-os=mingw32 --disable-gpl
         --enable-cross-compile --cross-prefix=$TARGET- --arch=${TARGET%%-*}
         --cc="$CC" --cxx="$CXX" $commonflags
         --disable-{doc,programs}

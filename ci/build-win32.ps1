@@ -229,8 +229,8 @@ meson setup build `
     -Ddefault_library=static `
     -Dlibmpv=true `
     -Dtests=true `
-    -Dgpl=true `
-    -Dffmpeg:gpl=enabled `
+    -Dgpl=false `
+    -Dffmpeg:gpl=disabled `
     -Dffmpeg:tests=enabled `
     -Dffmpeg:programs=enabled `
     -Dffmpeg:sdl2=disabled `

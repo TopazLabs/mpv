@@ -1776,7 +1776,7 @@ if win32
 endif
 
 
-incdir_public = include_directories('./include')
+incdir_public = include_directories('./include', './conan/include')
 client_h_define = cc.get_define('MPV_CLIENT_API_VERSION', prefix: '#include "mpv/client.h"',
                                 include_directories: incdir_public)
 major = client_h_define.split('|')[0].split('<<')[0].strip('() ')
