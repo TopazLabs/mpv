@@ -8,6 +8,7 @@ FFMPEG_SYSROOT="${HOME}/deps/sysroot"
 CONAN_OUTPUT_DIR="${CONAN_OUTPUT_DIR:-./conan}"
 BUILD_DIR="${BUILD_DIR:-build-minimal}"
 MPV_INSTALL_PREFIX="${HOME}/out/mpv-minimal"
+PACKAGE_OUTPUT_DIR="${PACKAGE_OUTPUT_DIR:-./build-minimal/package-macos-armv8}"
 SUBPROJECTS_DIR="subprojects"
 LIBASS_WRAP="${SUBPROJECTS_DIR}/libass.wrap"
 
@@ -24,6 +25,10 @@ if [[ -d "${BUILD_DIR}" ]] ; then
     rm -rf "${BUILD_DIR}"
 fi
 
+if [[ -d "${MPV_INSTALL_PREFIX}" ]] ; then
+    rm -rf "${MPV_INSTALL_PREFIX}"
+fi
+
 mkdir -p "${SUBPROJECTS_DIR}"
 if [[ ! -f "${LIBASS_WRAP}" ]] ; then
     cat > "${LIBASS_WRAP}" <<'EOF'
@@ -34,8 +39,11 @@ depth = 1
 EOF
 fi
 
+DEPENDENCY_OUTPUT_DIR=
+
 if [[ -f "${CONAN_OUTPUT_DIR}/conanbuild.sh" ]] ; then
     . "${CONAN_OUTPUT_DIR}/conanbuild.sh"
+    DEPENDENCY_OUTPUT_DIR="${CONAN_OUTPUT_DIR}"
     if [[ -d "${CONAN_OUTPUT_DIR}/lib/pkgconfig" ]] ; then
         python3 - "${CONAN_OUTPUT_DIR}" <<'PY'
 from pathlib import Path
@@ -66,6 +74,7 @@ PY
     fi
     PKG_CONFIG_PATHS="${CONAN_OUTPUT_DIR}:${CONAN_OUTPUT_DIR}/lib/pkgconfig"
 elif [[ -d "${FFMPEG_SYSROOT}/lib/pkgconfig" ]] ; then
+    DEPENDENCY_OUTPUT_DIR="${FFMPEG_SYSROOT}"
     PKG_CONFIG_PATHS="${FFMPEG_SYSROOT}/lib/pkgconfig"
 else
     echo "No Conan output found at ${CONAN_OUTPUT_DIR} and no legacy sysroot at ${FFMPEG_SYSROOT}." >&2
@@ -74,8 +83,8 @@ else
 fi
 
 PKG_CONFIG_PATH="${PKG_CONFIG_PATHS}:${PKG_CONFIG_PATH}" \
-DYLD_LIBRARY_PATH="${CONAN_OUTPUT_DIR}/lib:${DYLD_LIBRARY_PATH}" \
-CFLAGS="-I${CONAN_OUTPUT_DIR}/include ${CFLAGS}" \
+DYLD_LIBRARY_PATH="${DEPENDENCY_OUTPUT_DIR}/lib:${DYLD_LIBRARY_PATH}" \
+CFLAGS="-I${DEPENDENCY_OUTPUT_DIR}/include ${CFLAGS}" \
 CC="${CC}" CXX="${CXX}" \
 "${MESON[@]}" setup "${BUILD_DIR}" --force-fallback-for=libass $common_args \
   -Dprefix="${MPV_INSTALL_PREFIX}" \
@@ -114,11 +123,14 @@ CC="${CC}" CXX="${CXX}" \
 "${MESON[@]}" compile -C "${BUILD_DIR}" -j4
 "${MESON[@]}" install -C "${BUILD_DIR}"
 
-if [[ -f "${CONAN_OUTPUT_DIR}/conanrun.sh" ]] ; then
-    . "${CONAN_OUTPUT_DIR}/conanrun.sh"
+if [[ -f "${DEPENDENCY_OUTPUT_DIR}/conanrun.sh" ]] ; then
+    . "${DEPENDENCY_OUTPUT_DIR}/conanrun.sh"
 fi
 
-python3 - "${CONAN_OUTPUT_DIR}" "${BUILD_DIR}/builds-arm" <<'PY'
+./ci/package-macos.sh "${MPV_INSTALL_PREFIX}" "${DEPENDENCY_OUTPUT_DIR}" "${PACKAGE_OUTPUT_DIR}"
+echo "minimal macOS package directory: ${PACKAGE_OUTPUT_DIR}"
+
+python3 - "${DEPENDENCY_OUTPUT_DIR}" "${BUILD_DIR}/builds-arm" <<'PY'
 from pathlib import Path
 import shutil
 import sys
@@ -135,6 +147,6 @@ for name in ("lib", "bin"):
         shutil.copytree(src_path, dst / name, symlinks=True)
 PY
 
-ln -sfn "${CONAN_OUTPUT_DIR}" ./builds-arm
+ln -sfn "${DEPENDENCY_OUTPUT_DIR}" ./builds-arm
 
 "./${BUILD_DIR}/mpv" -v --no-config

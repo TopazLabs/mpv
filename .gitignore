@@ -8,3 +8,7 @@ conan/
 builds-arm
 subprojects/
 build-minimal/
+.worktrees/
+/build/package-macos-armv8/
+
+**/CHANGELOG.md
