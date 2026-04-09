@@ -10,3 +10,4 @@
 - macOS build now stages Conan runtime libs under `build/builds-arm/` so `build/mpv` can be run directly from the build directory.
 - Expanded the macOS build note with rationale, source-of-truth files, generated paths, and troubleshooting guidance.
 - Clarified in the macOS build note that repo-root `builds-arm` is a symlink, while `build/builds-arm/` is a copied runtime folder.
+- Added `ci/build-macos-minimal.sh` as the smallest currently working macOS build path for basic playback + `libmpv`, and documented what it disables versus what still remains core.

@@ -7,3 +7,4 @@ conan/
 .DS_Store
 builds-arm
 subprojects/
+build-minimal/

@@ -64,6 +64,87 @@ cd build
 
 This is expected to work after the build script completes.
 
+## Minimal macOS build
+
+There is now a second macOS build entrypoint intended to remove as many optional
+features as possible while still keeping:
+
+- basic local playback
+- `libmpv`
+- LGPL mode
+
+### Minimal build command
+
+Run from repo root:
+
+```bash
+bash ./ci/build-macos-minimal.sh
+```
+
+### Minimal build outputs
+
+- build directory: `build-minimal/`
+- install prefix: `~/out/mpv-minimal`
+
+### Run the minimal binary
+
+```bash
+cd build-minimal
+./mpv -v --no-config
+```
+
+### What the minimal build disables
+
+The minimal path explicitly disables these optional features:
+
+- `tests`
+- `cplugins`
+- `javascript`
+- `jpeg`
+- `lcms2`
+- `libarchive`
+- `libavdevice`
+- `libbluray`
+- `rubberband`
+- `uchardet`
+- `vapoursynth`
+- `zimg`
+- `lua`
+- `vulkan`
+- `videotoolbox-gl`
+- `videotoolbox-pl`
+- `macos-media-player`
+- `macos-touchbar`
+- `drm`
+- `wayland`
+- `x11`
+
+### What still remains required in this tree
+
+Even the minimal build still keeps these pieces:
+
+- `libass`
+- `libplacebo`
+- `cocoa`
+- `coreaudio`
+- `gl`
+- `gl-cocoa`
+- `plain-gl`
+- `iconv`
+- `zlib`
+- `swift-build`
+- `macos-cocoa-cb`
+
+Reason:
+
+- `libass` and `libplacebo` are effectively core in the current mpv tree/fork
+- `swift-build` is still needed for the current Cocoa CLI path
+- `macos-cocoa-cb` is kept because the target still includes `libmpv`
+
+If you want to go even smaller than this, it is no longer just a build-flag
+cleanup. The next step would be a deeper refactor/audit of whether `libplacebo`,
+`libass`, or the current Swift/Cocoa assumptions can be made optional again.
+
 ## Why the current flow looks like this
 
 ### LGPL
