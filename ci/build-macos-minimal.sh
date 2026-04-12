@@ -90,6 +90,8 @@ CC="${CC}" CXX="${CXX}" \
   -Dprefix="${MPV_INSTALL_PREFIX}" \
   -Dtests=false \
   -Dobjc_args="-Wno-error=deprecated -Wno-error=deprecated-declarations" \
+  -Dlibass:coretext=enabled \
+  -Dlibass:fontconfig=disabled \
   -Dgl=enabled \
   -Diconv=enabled \
   -Dplain-gl=enabled \

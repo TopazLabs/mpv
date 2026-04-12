@@ -88,6 +88,8 @@ CC="${CC}" CXX="${CXX}" \
 "${MESON[@]}" setup build --force-fallback-for=libass $common_args \
   -Dprefix="${MPV_INSTALL_PREFIX}" \
   -Dobjc_args="-Wno-error=deprecated -Wno-error=deprecated-declarations" \
+  -Dlibass:coretext=enabled \
+  -Dlibass:fontconfig=disabled \
   -D{gl,iconv,lcms2,lua,jpeg,plain-gl,zlib}=enabled \
   -D{cocoa,coreaudio,gl-cocoa,videotoolbox-gl,videotoolbox-pl}=enabled \
   -D{swift-build,macos-cocoa-cb,macos-media-player,macos-touchbar,vulkan}=enabled \

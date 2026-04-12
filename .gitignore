@@ -12,3 +12,5 @@ build-minimal/
 /build/package-macos-armv8/
 
 **/CHANGELOG.md
+
+*.log
