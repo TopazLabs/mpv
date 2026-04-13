@@ -116,6 +116,8 @@ CFLAGS="-mmacosx-version-min=${MACOS_MIN_VERSION} -I${DEPENDENCY_OUTPUT_DIR}/inc
 LDFLAGS="-mmacosx-version-min=${MACOS_MIN_VERSION} ${LDFLAGS}" \
 CC="${CC}" CXX="${CXX}" \
 "${MESON[@]}" setup "${BUILD_DIR}" "${MESON_CROSS_ARGS[@]}" --force-fallback-for=libass $common_args \
+  -Dgpl=false \
+  -Dlibmpv=true \
   -Dprefix="${MPV_INSTALL_PREFIX}" \
   -Dtests=false \
   -Dobjc_args="-Wno-error=deprecated -Wno-error=deprecated-declarations -mmacosx-version-min=${MACOS_MIN_VERSION}" \

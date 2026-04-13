@@ -23,6 +23,10 @@ class MPVConan(ConanFile):
 
     def configure(self):
         self.options["libiconv"].shared = True
+        # self.options['glib'].shared = True
+        self.options["harfbuzz"].shared = False
+        self.options["harfbuzz"].with_glib=False
+        self.options["fribidi"].shared = True
         # self.options["lcms"].shared = True
 
         self.settings.rm_safe("compiler.cppstd")
@@ -35,9 +39,10 @@ class MPVConan(ConanFile):
         self.requires("videoai/2.0.19", override=True)
         self.requires("aiengine/3.8.14", override=True)
         self.requires("zlib/1.2.13")
+        self.requires("harfbuzz/8.3.0-topaz")
+        self.requires("fribidi/1.0.13-topaz") # LGPL
         # self.requires("lcms/2.17")
-        self.requires("libiconv/1.17")
-        # libass and its text-shaping dependencies are expected outside Conan.
+        self.requires("libiconv/1.17") # LGPL
     
     def generate(self):
         # Generate the pkg-config metadata and env wrappers Meson consumes.

@@ -22,3 +22,7 @@ build-minimal-x86_64/
 !video/out/mac/CHANGELOG.md
 
 *.log
+
+CHANGELOG.md
+tests/
+DOCS/superpowers/
