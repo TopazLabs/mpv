@@ -4,11 +4,41 @@ set -e
 
 . ./ci/build-common.sh
 
-FFMPEG_SYSROOT="${HOME}/deps/sysroot"
-CONAN_OUTPUT_DIR="${CONAN_OUTPUT_DIR:-./conan}"
-BUILD_DIR="${BUILD_DIR:-build-minimal}"
-MPV_INSTALL_PREFIX="${HOME}/out/mpv-minimal"
-PACKAGE_OUTPUT_DIR="${PACKAGE_OUTPUT_DIR:-./build-minimal/package-macos-armv8}"
+MACOS_ARCH="${MACOS_ARCH:-arm64}"
+MACOS_MIN_VERSION="11.0"
+
+case "${MACOS_ARCH}" in
+    arm64)
+        DEFAULT_CONAN_OUTPUT_DIR="./conan"
+        DEFAULT_BUILD_DIR="build-minimal"
+        DEFAULT_MPV_INSTALL_PREFIX="${HOME}/out/mpv-minimal"
+        DEFAULT_PACKAGE_OUTPUT_DIR="./build-minimal/package-macos-armv8"
+        RUNTIME_LAYOUT_DIR="builds-arm"
+        CONAN_HOST_PROFILE="./build-scripts/profile_mac_armv8"
+        MESON_CROSS_ARGS=()
+        DEFAULT_SWIFT_FLAGS="-target arm64-apple-macos11.0"
+        ;;
+    x86_64)
+        DEFAULT_CONAN_OUTPUT_DIR="./conan-x86_64"
+        DEFAULT_BUILD_DIR="build-minimal-x86_64"
+        DEFAULT_MPV_INSTALL_PREFIX="${HOME}/out/mpv-minimal-x86_64"
+        DEFAULT_PACKAGE_OUTPUT_DIR="./build-minimal-x86_64/package-macos-x86_64"
+        RUNTIME_LAYOUT_DIR="builds-x86"
+        CONAN_HOST_PROFILE="./build-scripts/profile_mac14.0"
+        MESON_CROSS_ARGS=(--cross-file "ci/x86_64-cross-file.txt")
+        DEFAULT_SWIFT_FLAGS="-target x86_64-apple-macos11.0"
+        ;;
+    *)
+        echo "Unsupported MACOS_ARCH '${MACOS_ARCH}'. Expected 'arm64' or 'x86_64'." >&2
+        exit 1
+        ;;
+esac
+
+CONAN_OUTPUT_DIR="${CONAN_OUTPUT_DIR:-${DEFAULT_CONAN_OUTPUT_DIR}}"
+BUILD_DIR="${BUILD_DIR:-${DEFAULT_BUILD_DIR}}"
+MPV_INSTALL_PREFIX="${MPV_INSTALL_PREFIX:-${DEFAULT_MPV_INSTALL_PREFIX}}"
+PACKAGE_OUTPUT_DIR="${PACKAGE_OUTPUT_DIR:-${DEFAULT_PACKAGE_OUTPUT_DIR}}"
+SWIFT_FLAGS="${SWIFT_FLAGS:-${DEFAULT_SWIFT_FLAGS}}"
 SUBPROJECTS_DIR="subprojects"
 LIBASS_WRAP="${SUBPROJECTS_DIR}/libass.wrap"
 
@@ -73,23 +103,22 @@ for pc in pkgconfig_dir.glob("*.pc"):
 PY
     fi
     PKG_CONFIG_PATHS="${CONAN_OUTPUT_DIR}:${CONAN_OUTPUT_DIR}/lib/pkgconfig"
-elif [[ -d "${FFMPEG_SYSROOT}/lib/pkgconfig" ]] ; then
-    DEPENDENCY_OUTPUT_DIR="${FFMPEG_SYSROOT}"
-    PKG_CONFIG_PATHS="${FFMPEG_SYSROOT}/lib/pkgconfig"
 else
-    echo "No Conan output found at ${CONAN_OUTPUT_DIR} and no legacy sysroot at ${FFMPEG_SYSROOT}." >&2
-    echo "Run 'conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac_armv8 -of ./conan' first." >&2
+    echo "No Conan output found at ${CONAN_OUTPUT_DIR}." >&2
+    echo "Run 'conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ${CONAN_HOST_PROFILE} -of ${CONAN_OUTPUT_DIR}' first." >&2
     exit 1
 fi
 
 PKG_CONFIG_PATH="${PKG_CONFIG_PATHS}:${PKG_CONFIG_PATH}" \
 DYLD_LIBRARY_PATH="${DEPENDENCY_OUTPUT_DIR}/lib:${DYLD_LIBRARY_PATH}" \
-CFLAGS="-I${DEPENDENCY_OUTPUT_DIR}/include ${CFLAGS}" \
+MACOSX_DEPLOYMENT_TARGET="${MACOS_MIN_VERSION}" \
+CFLAGS="-mmacosx-version-min=${MACOS_MIN_VERSION} -I${DEPENDENCY_OUTPUT_DIR}/include ${CFLAGS}" \
+LDFLAGS="-mmacosx-version-min=${MACOS_MIN_VERSION} ${LDFLAGS}" \
 CC="${CC}" CXX="${CXX}" \
-"${MESON[@]}" setup "${BUILD_DIR}" --force-fallback-for=libass $common_args \
+"${MESON[@]}" setup "${BUILD_DIR}" "${MESON_CROSS_ARGS[@]}" --force-fallback-for=libass $common_args \
   -Dprefix="${MPV_INSTALL_PREFIX}" \
   -Dtests=false \
-  -Dobjc_args="-Wno-error=deprecated -Wno-error=deprecated-declarations" \
+  -Dobjc_args="-Wno-error=deprecated -Wno-error=deprecated-declarations -mmacosx-version-min=${MACOS_MIN_VERSION}" \
   -Dlibass:coretext=enabled \
   -Dlibass:fontconfig=disabled \
   -Dgl=enabled \
@@ -118,6 +147,7 @@ CC="${CC}" CXX="${CXX}" \
   -Dvideotoolbox-pl=disabled \
   -Dmacos-media-player=disabled \
   -Dmacos-touchbar=disabled \
+  -Dswift-flags="${SWIFT_FLAGS}" \
   -Ddrm=disabled \
   -Dwayland=disabled \
   -Dx11=disabled
@@ -130,9 +160,9 @@ if [[ -f "${DEPENDENCY_OUTPUT_DIR}/conanrun.sh" ]] ; then
 fi
 
 ./ci/package-macos.sh "${MPV_INSTALL_PREFIX}" "${DEPENDENCY_OUTPUT_DIR}" "${PACKAGE_OUTPUT_DIR}"
-echo "minimal macOS package directory: ${PACKAGE_OUTPUT_DIR}"
+echo "Success: minimal macOS package directory: ${PACKAGE_OUTPUT_DIR}"
 
-python3 - "${DEPENDENCY_OUTPUT_DIR}" "${BUILD_DIR}/builds-arm" <<'PY'
+python3 - "${DEPENDENCY_OUTPUT_DIR}" "${BUILD_DIR}/${RUNTIME_LAYOUT_DIR}" <<'PY'
 from pathlib import Path
 import shutil
 import sys
@@ -149,6 +179,7 @@ for name in ("lib", "bin"):
         shutil.copytree(src_path, dst / name, symlinks=True)
 PY
 
-ln -sfn "${DEPENDENCY_OUTPUT_DIR}" ./builds-arm
+ln -sfn "${DEPENDENCY_OUTPUT_DIR}" "./${RUNTIME_LAYOUT_DIR}"
 
+echo "--> Testing minimal build runtime"
 "./${BUILD_DIR}/mpv" -v --no-config

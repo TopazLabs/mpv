@@ -23,7 +23,7 @@ class MPVConan(ConanFile):
 
     def configure(self):
         self.options["libiconv"].shared = True
-        self.options["lcms"].shared = True
+        # self.options["lcms"].shared = True
 
         self.settings.rm_safe("compiler.cppstd")
         self.settings.rm_safe("compiler.libcxx")
@@ -35,7 +35,7 @@ class MPVConan(ConanFile):
         self.requires("videoai/2.0.19", override=True)
         self.requires("aiengine/3.8.14", override=True)
         self.requires("zlib/1.2.13")
-        self.requires("lcms/2.14")
+        # self.requires("lcms/2.17")
         self.requires("libiconv/1.17")
         # libass and its text-shaping dependencies are expected outside Conan.
     

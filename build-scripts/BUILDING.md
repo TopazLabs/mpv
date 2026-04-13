@@ -81,6 +81,20 @@ Run from repo root:
 bash ./ci/build-macos-minimal.sh
 ```
 
+This defaults to `MACOS_ARCH=arm64` and now targets macOS `11.0` for the
+minimal macOS build path.
+
+For an Intel minimal build from Apple Silicon, install the Intel Conan output and
+then run:
+
+```bash
+conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac14.0 -of ./conan-x86_64
+MACOS_ARCH=x86_64 ./ci/build-macos-minimal.sh
+```
+
+The Intel path uses `ci/x86_64-cross-file.txt` for Meson and stages FFmpeg
+runtime libraries under `builds-x86`, matching the current Intel dylib layout.
+
 ### Minimal build outputs
 
 - build directory: `build-minimal/`

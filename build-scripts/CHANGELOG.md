@@ -1,3 +1,9 @@
+## 2026-04-12
+
+- Documented the Intel minimal macOS Conan install and `MACOS_ARCH=x86_64` build flow using the existing `profile_mac14.0` host profile.
+- Clarified that the Intel minimal macOS path now uses a Meson cross-file, targets macOS `11.0`, and uses the `builds-x86` runtime layout expected by the current x86_64 FFmpeg dylibs.
+- Clarified that the minimal ARM64 path also now targets macOS `11.0`.
+
 ## 2026-04-09
 
 - macOS local build now prefers Conan-generated env/pkg-config output instead of the old sysroot-only path.

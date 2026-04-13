@@ -3,14 +3,22 @@
 !/subprojects/*.wrap
 
 conan/
+conan-x86_64/
 **/__pycache__/
 .DS_Store
 builds-arm
+builds-x86
+builds-x86_64
 subprojects/
 build-minimal/
+build-minimal-x86_64/
 .worktrees/
 /build/package-macos-armv8/
 
 **/CHANGELOG.md
+!ci/CHANGELOG.md
+!tests/ci/CHANGELOG.md
+!video/out/CHANGELOG.md
+!video/out/mac/CHANGELOG.md
 
 *.log

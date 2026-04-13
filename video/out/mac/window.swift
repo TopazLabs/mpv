@@ -333,7 +333,7 @@ class Window: NSWindow, NSWindowDelegate {
     func startDragging() {
         guard let view = common.view, let event = view.lastMouseDownEvent else { return }
         var pos = view.convert(event.locationInWindow, from: nil)
-        pos = convertPointToBacking(pos)
+        pos = view.convertToBacking(pos)
 
         if input?.draggable(at: pos) ?? true {
             performDrag(with: event)
