@@ -6,6 +6,7 @@ import os
 
 
 required_conan_version = ">=2.0"
+FILTERED_HEADER_DIRS = ("aiengine", "videoai")
 
 
 class MPVConan(ConanFile):
@@ -34,10 +35,10 @@ class MPVConan(ConanFile):
 
 
     def requirements(self):
-        self.requires("topaz-ffmpeg/8.0.1.2")
-        self.requires("topaz_rlm/0.1.2", override=True)
-        self.requires("videoai/2.0.19", override=True)
-        self.requires("aiengine/3.8.14", override=True)
+        self.requires("topaz-ffmpeg/[~8.1.0.0]")
+        # self.requires("topaz_rlm/0.1.2", override=True)
+        # self.requires("videoai/2.0.19", override=True)
+        # self.requires("aiengine/3.8.14", override=True)
         self.requires("zlib/1.2.13")
         self.requires("harfbuzz/8.3.0-topaz")
         self.requires("fribidi/1.0.13-topaz") # LGPL
@@ -65,5 +66,11 @@ class MPVConan(ConanFile):
                     # Copy DLLs and other things from older pre-builts that use binr/bind
                     copy(self, "*", dst="bin", src=os.path.join(dep.package_folder, "binr"))
                 if self.settings.os == "Macos":
-                    copy(self, "*", src=os.path.join(dep.package_folder, "include"), dst="include")
+                    copy(
+                        self,
+                        "*",
+                        src=os.path.join(dep.package_folder, "include"),
+                        dst="include",
+                        excludes=[f"{name}/*" for name in FILTERED_HEADER_DIRS],
+                    )
                     copy(self, "*", src=os.path.join(dep.package_folder, "lib"), dst="lib")

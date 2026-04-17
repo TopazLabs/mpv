@@ -1,3 +1,6 @@
+## 2026-04-16
+
+- macOS Conan staging now skips bundled `aiengine` and `videoai` headers so transitive FFmpeg package headers do not shadow the direct dependency headers used by this build.
 ## 2026-04-12
 
 - Documented the Intel minimal macOS Conan install and `MACOS_ARCH=x86_64` build flow using the existing `profile_mac14.0` host profile.
