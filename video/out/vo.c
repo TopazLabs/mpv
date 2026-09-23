@@ -70,14 +70,17 @@ extern const struct vo_driver video_out_kitty;
 static const struct vo_driver *const video_out_drivers[] =
 {
     // high-quality and well-supported VOs first:
-    &video_out_gpu,
     &video_out_gpu_next,
+    &video_out_gpu,
 
 #if HAVE_VDPAU
     &video_out_vdpau,
 #endif
 #if HAVE_DIRECT3D
     &video_out_direct3d,
+#endif
+#if HAVE_DMABUF_WAYLAND
+    &video_out_dmabuf_wayland,
 #endif
 #if HAVE_WAYLAND && HAVE_MEMFD_CREATE
     &video_out_wlshm,
@@ -90,9 +93,6 @@ static const struct vo_driver *const video_out_drivers[] =
 #endif
 #if HAVE_SDL2_VIDEO
     &video_out_sdl,
-#endif
-#if HAVE_DMABUF_WAYLAND
-    &video_out_dmabuf_wayland,
 #endif
 #if HAVE_VAAPI_X11 && HAVE_GPL
     &video_out_vaapi,
@@ -170,6 +170,7 @@ struct vo_internal {
     bool rendering;                 // true if an image is being rendered
     struct vo_frame *frame_queued;  // should be drawn next
     int req_frames;                 // VO's requested value of num_frames
+    int frame_refs;                 // max frames the VO may reference at once
     uint64_t current_frame_id;
 
     double display_fps;
@@ -256,8 +257,6 @@ static void dealloc_vo(struct vo *vo)
 
     // These must be free'd before vo->in->dispatch.
     talloc_free(vo->opts_cache);
-    talloc_free(vo->gl_opts_cache);
-    talloc_free(vo->eq_opts_cache);
     mp_mutex_destroy(&vo->params_mutex);
 
     mp_mutex_destroy(&vo->in->lock);
@@ -295,6 +294,7 @@ static struct vo *vo_create(bool probing, struct mpv_global *global,
     *vo->in = (struct vo_internal) {
         .dispatch = mp_dispatch_create(vo),
         .req_frames = 1,
+        .frame_refs = 2, // current_frame + frame_queued
         .estimated_vsync_jitter = -1,
         .stats = stats_ctx_create(vo, global, "vo"),
     };
@@ -307,9 +307,6 @@ static struct vo *vo_create(bool probing, struct mpv_global *global,
 
     m_config_cache_set_dispatch_change_cb(vo->opts_cache, vo->in->dispatch,
                                           update_opts, vo);
-
-    vo->gl_opts_cache = m_config_cache_alloc(NULL, global, &gl_video_conf);
-    vo->eq_opts_cache = m_config_cache_alloc(NULL, global, &mp_csp_equalizer_conf);
 
     mp_input_set_mouse_transform(vo->input_ctx, NULL, NULL);
     if (vo->driver->encode != !!vo->encode_lavc_ctx)
@@ -841,9 +838,7 @@ bool vo_is_ready_for_frame(struct vo *vo, int64_t next_pts)
 {
     struct vo_internal *in = vo->in;
     mp_mutex_lock(&in->lock);
-    bool blocked = vo->driver->initially_blocked &&
-                   !(in->internal_events & VO_EVENT_INITIAL_UNBLOCK);
-    bool r = vo->config_ok && !in->frame_queued && !blocked &&
+    bool r = vo->config_ok && !in->frame_queued &&
              (!in->current_frame || in->current_frame->num_vsyncs < 1);
     if (r && next_pts >= 0) {
         // Don't show the frame too early - it would basically freeze the
@@ -992,9 +987,6 @@ static bool render_frame(struct vo *vo)
         in->prev_vsync = now;
     in->expecting_vsync = use_vsync;
 
-    // Store the initial value before we unlock.
-    bool request_redraw = in->request_redraw;
-
     if (in->dropped_frame) {
         in->drop_count += 1;
         wakeup_core(vo);
@@ -1006,6 +998,8 @@ static bool render_frame(struct vo *vo)
         // timer instead, but possibly benefits from preparing a frame early.
         bool can_queue = !in->frame_queued &&
             (in->current_frame->num_vsyncs < 1 || !use_vsync);
+        // This draw covers every redraw request made so far.
+        in->request_redraw = false;
         mp_mutex_unlock(&in->lock);
 
         if (can_queue)
@@ -1048,18 +1042,14 @@ static bool render_frame(struct vo *vo)
         in->current_frame = NULL;
     }
 
-    if (in->dropped_frame) {
+    if (in->dropped_frame)
         MP_STATS(vo, "drop-vo");
-    } else {
-        // If the initial redraw request was true or mpv is still playing,
-        // then we can clear it here since we just performed a redraw, or the
-        // next loop will draw what we need. However if there initially is
-        // no redraw request, then something can change this (i.e. the OSD)
-        // while the vo was unlocked. If we are paused, don't touch
-        // in->request_redraw in that case.
-        if (request_redraw || !in->paused)
-            in->request_redraw = false;
-    }
+
+    // A redraw request that arrived while the VO was unlocked, will be handled
+    // by the already queued frame. Clear pending redraw requests to avoid
+    // unnecessary wakeups.
+    if (in->frame_queued)
+        in->request_redraw = false;
 
     if (in->current_frame && in->current_frame->num_vsyncs &&
         in->current_frame->display_synced)
@@ -1164,7 +1154,7 @@ static MP_THREAD_VOID vo_thread(void *ptr)
                 wakeup_core(vo);
             }
         }
-        if (vo->want_redraw && !in->want_redraw) {
+        if (vo->want_redraw) {
             in->want_redraw = true;
             wakeup_core(vo);
         }
@@ -1189,8 +1179,16 @@ static MP_THREAD_VOID vo_thread(void *ptr)
         if (send_pause)
             vo->driver->control(vo, vo_paused ? VOCTRL_PAUSE : VOCTRL_RESUME, NULL);
         if (wait_until > now && redraw) {
-            vo->driver->control(vo, VOCTRL_REDRAW, NULL);
-            do_redraw(vo); // now is a good time
+            // Allow manual redraws at most at display fps.
+            int64_t max_interval = in->vsync_interval > 1 ? in->vsync_interval : 0;
+            // Some windowing platforms break if we submit frames too fast.
+            if (vo->previous_redraw_time + max_interval <= now) {
+                vo->driver->control(vo, VOCTRL_REDRAW, NULL);
+                do_redraw(vo); // now is a good time
+                vo->previous_redraw_time = now;
+            } else {
+                wait_vo(vo, now + max_interval);
+            }
             continue;
         }
         if (vo->want_redraw) // might have been set by VOCTRLs
@@ -1331,12 +1329,17 @@ void vo_get_src_dst_rects(struct vo *vo, struct mp_rect *out_src,
 // (For vo_vdpau, which does its own timing.)
 // num_req_frames set the requested number of requested vo_frame.frames.
 // (For vo_gpu interpolation.)
-void vo_set_queue_params(struct vo *vo, int64_t offset_ns, int num_req_frames)
+// num_frame_refs sets the total number of frames the VO may reference at the
+// same time, including retained past frames. (For sizing fixed hardware
+// decoder surface pools.)
+void vo_set_queue_params(struct vo *vo, int64_t offset_ns, int num_req_frames,
+                         int num_frame_refs)
 {
     struct vo_internal *in = vo->in;
     mp_mutex_lock(&in->lock);
     in->flip_queue_offset = offset_ns;
     in->req_frames = MPCLAMP(num_req_frames, 1, VO_MAX_REQ_FRAMES);
+    in->frame_refs = MPCLAMP(num_frame_refs, in->req_frames, 2 * VO_MAX_REQ_FRAMES);
     mp_mutex_unlock(&in->lock);
 }
 
@@ -1345,6 +1348,15 @@ int vo_get_num_req_frames(struct vo *vo)
     struct vo_internal *in = vo->in;
     mp_mutex_lock(&in->lock);
     int res = in->req_frames;
+    mp_mutex_unlock(&in->lock);
+    return res;
+}
+
+int vo_get_num_frame_refs(struct vo *vo)
+{
+    struct vo_internal *in = vo->in;
+    mp_mutex_lock(&in->lock);
+    int res = in->frame_refs;
     mp_mutex_unlock(&in->lock);
     return res;
 }
@@ -1415,6 +1427,11 @@ double vo_get_display_fps(struct vo *vo)
     double res = vo->in->display_fps;
     mp_mutex_unlock(&in->lock);
     return res;
+}
+
+void * vo_get_display_swapchain(struct vo *vo)
+{
+    return vo->display_swapchain;
 }
 
 // Set specific event flags, and wakeup the playback core if needed.

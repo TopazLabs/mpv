@@ -147,7 +147,7 @@ struct mp_imgfmt_desc {
 struct mp_imgfmt_desc mp_imgfmt_get_desc(int imgfmt);
 
 // Return the number of component types, or 0 if unknown.
-int mp_imgfmt_desc_get_num_comps(struct mp_imgfmt_desc *desc);
+int mp_imgfmt_desc_get_num_comps(const struct mp_imgfmt_desc *desc);
 
 // For MP_IMGFLAG_PACKED_SS_YUV formats (packed sub-sampled YUV): positions of
 // further luma samples. luma_offsets must be an array of align_x size, and the
@@ -247,6 +247,11 @@ enum mp_imgfmt {
     IMGFMT_BGR24,               // 3 bytes per pixel
     IMGFMT_RGB24,
 
+    IMGFMT_X2RGB10,             // 2pad 10r 10g 10b (MSB to LSB)
+    IMGFMT_X2BGR10,             // 2pad 10b 10g 10r (MSB to LSB)
+
+    IMGFMT_RGBAF16,
+
     // Like e.g. IMGFMT_ARGB, but has a padding byte instead of alpha
     IMGFMT_0RGB,
     IMGFMT_BGR0,
@@ -297,9 +302,6 @@ enum mp_imgfmt {
     IMGFMT_411PF,
     IMGFMT_411APF,
 
-    // Accessed with bit-shifts, uint32_t units.
-    IMGFMT_RGB30,               // 2pad 10r 10g 10b (MSB to LSB)
-
     // Fringe formats for fringe RGB format repacking.
     IMGFMT_Y1,      // gray with 1 bit per pixel
     IMGFMT_GBRP1,   // planar RGB with N bits per color component
@@ -336,5 +338,7 @@ char **mp_imgfmt_name_list(void);
 
 int mp_imgfmt_select_best(int dst1, int dst2, int src);
 int mp_imgfmt_select_best_list(int *dst, int num_dst, int src);
+bool mp_imgfmt_is_subsampled(enum mp_imgfmt fmt);
+bool mp_imgfmt_is_420_subsampled(enum mp_imgfmt fmt);
 
 #endif /* MPLAYER_IMG_FORMAT_H */

@@ -28,6 +28,7 @@ typedef struct mp_vo_opts {
     char *fsscreen_name;
     char *winname;
     char *appid;
+    char *wayland_session;
     int x11_netwm;
     int x11_bypass_compositor;
     int x11_present;
@@ -86,6 +87,8 @@ typedef struct mp_vo_opts {
 
     struct m_geometry android_surface_size;
 
+    struct m_geometry d3d11_composition_size;
+
     int swapchain_depth;  // max number of images to render ahead
 
     struct m_geometry video_crop;
@@ -100,12 +103,13 @@ struct mp_subtitle_opts {
     bool stretch_image_subs;
     bool image_subs_video_res;
     bool sub_fix_timing;
+    int sub_fix_timing_threshold;
+    int sub_fix_timing_keep;
     bool sub_stretch_durations;
     bool sub_scale_by_window;
     bool sub_scale_with_window;
     bool ass_scale_with_window;
     struct osd_style_opts *sub_style;
-    float sub_scale;
     bool sub_scale_signs;
     float sub_gauss;
     bool sub_gray;
@@ -134,8 +138,9 @@ struct mp_subtitle_opts {
 
 // Options for both primary and secondary subs.
 struct mp_subtitle_shared_opts {
-    float sub_delay[2];
+    double sub_delay[2];
     float sub_pos[2];
+    float sub_scale[2];
     bool sub_visibility[2];
     int ass_style_override[2];
 };
@@ -152,6 +157,16 @@ struct mp_osd_render_opts {
     int osd_glyph_limit;
     int osd_bitmap_max_size;
     int osd_shaper;
+};
+
+struct mp_bluray_opts {
+    char *bluray_device;
+    int angle;
+};
+
+struct dvda_opts {
+    char *device;
+    int page;
 };
 
 typedef struct MPOpts {
@@ -176,13 +191,13 @@ typedef struct MPOpts {
     bool lua_load_ytdl;
     char *lua_ytdl_format;
     char **lua_ytdl_raw_options;
-    bool lua_ytdl_extract_chapters;
     bool lua_load_stats;
     bool lua_load_console;
     int lua_load_auto_profiles;
     bool lua_load_select;
     bool lua_load_positioning;
     bool lua_load_commands;
+    bool lua_load_context_menu;
 
     bool auto_load_scripts;
 
@@ -244,6 +259,9 @@ typedef struct MPOpts {
     bool use_filedir_conf;
     int hls_bitrate;
     int edition_id;
+    bool flatten_editions;
+    bool disc_menu;
+    bool show_dependent_tracks;
     bool initial_audio_sync;
     double sync_max_video_change;
     double sync_max_audio_change;
@@ -251,7 +269,7 @@ typedef struct MPOpts {
     int hr_seek;
     float hr_seek_demuxer_offset;
     bool hr_seek_framedrop;
-    float audio_delay;
+    double audio_delay;
     float default_max_pts_correction;
     int autosync;
     int frame_dropping;
@@ -271,6 +289,7 @@ typedef struct MPOpts {
     char **input_commands;
     bool consolecontrols;
     int playlist_pos;
+    int playlist_inherit_options;
     struct m_rel_time play_start;
     struct m_rel_time play_end;
     struct m_rel_time play_length;
@@ -350,21 +369,24 @@ typedef struct MPOpts {
     char **playlist_exts;
     bool osd_bar_visible;
 
+    struct w32_register_opts *w32_register_opts;
     int w32_priority;
     bool media_controls;
 
-    struct bluray_opts *stream_bluray_opts;
+    struct mp_bluray_opts *stream_bluray_opts;
     struct cdda_opts *stream_cdda_opts;
     struct dvb_opts *stream_dvb_opts;
-    struct lavf_opts *stream_lavf_opts;
-
-    char *bluray_device;
+    struct mp_network_opts *network_opts;
+    struct stream_lavf_opts *stream_lavf_opts;
 
     struct demux_rawaudio_opts *demux_rawaudio;
     struct demux_rawvideo_opts *demux_rawvideo;
     struct demux_playlist_opts *demux_playlist;
     struct demux_lavf_opts *demux_lavf;
     struct demux_mkv_opts *demux_mkv;
+#if HAVE_SUBRANDR
+    struct demux_sbr_opts *demux_sbr;
+#endif
 
     struct demux_opts *demux_opts;
     struct demux_cache_opts *demux_cache_opts;
@@ -376,8 +398,11 @@ typedef struct MPOpts {
     struct hwdec_opts *hwdec_opts;
 
     struct input_opts *input_opts;
+    bool builtin_dnd;
 
     struct clipboard_opts *clipboard_opts;
+
+    struct curl_opts *curl_opts;
 
     struct encode_opts *encode_opts;
 
@@ -401,6 +426,7 @@ typedef struct MPOpts {
     struct wingl_opts *wingl_opts;
     struct cuda_opts *cuda_opts;
     struct dvd_opts *dvd_opts;
+    struct dvda_opts *dvda_opts;
     struct vaapi_opts *vaapi_opts;
     struct sws_opts *sws_opts;
     struct zimg_opts *zimg_opts;

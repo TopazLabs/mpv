@@ -309,7 +309,7 @@ static void open_render_fd(struct ra_ctx *ctx, const char *render_path)
 static bool drm_setup(struct ra_ctx *ctx, int display_idx,
                       VkPhysicalDevicePCIBusInfoPropertiesEXT *pci_props)
 {
-    drmDevice *devs[32] = {};
+    drmDevice *devs[32] = {0};
     int count = drmGetDevices2(0, devs, MP_ARRAY_SIZE(devs));
     for (int i = 0; i < count; i++) {
         drmDevice *dev = devs[i];
@@ -377,6 +377,10 @@ static bool display_init(struct ra_ctx *ctx)
 
     VkDisplayModePropertiesKHR *mode = NULL;
 
+#if HAVE_DRM
+    p->drm_params.fd = -1;
+    p->drm_params.render_fd = -1;
+#endif
     p->opts = mp_get_config_group(p, ctx->global, &vulkan_display_conf);
     int display_idx = p->opts->display;
     int mode_idx = p->opts->mode;

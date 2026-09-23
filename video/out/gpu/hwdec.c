@@ -40,25 +40,25 @@ extern const struct ra_hwdec_driver ra_hwdec_aimagereader;
 extern const struct ra_hwdec_driver ra_hwdec_vulkan;
 
 const struct ra_hwdec_driver *const ra_hwdec_drivers[] = {
-#if HAVE_VAAPI
-    &ra_hwdec_vaapi,
-#endif
-#if HAVE_VIDEOTOOLBOX_GL || HAVE_IOS_GL || HAVE_VIDEOTOOLBOX_PL
-    &ra_hwdec_videotoolbox,
-#endif
 #if HAVE_D3D_HWACCEL
- #if HAVE_EGL_ANGLE
-    &ra_hwdec_d3d11egl,
-  #if HAVE_D3D9_HWACCEL
-    &ra_hwdec_dxva2egl,
-  #endif
- #endif
  #if HAVE_D3D11
     &ra_hwdec_d3d11va,
   #if HAVE_D3D9_HWACCEL
     &ra_hwdec_dxva2dxgi,
   #endif
  #endif
+ #if HAVE_EGL_ANGLE
+    &ra_hwdec_d3d11egl,
+  #if HAVE_D3D9_HWACCEL
+    &ra_hwdec_dxva2egl,
+  #endif
+ #endif
+#endif
+#if HAVE_VAAPI
+    &ra_hwdec_vaapi,
+#endif
+#if HAVE_VIDEOTOOLBOX_GL || HAVE_IOS_GL || HAVE_VIDEOTOOLBOX_PL
+    &ra_hwdec_videotoolbox,
 #endif
 #if HAVE_GL_DXINTEROP_D3D9
     &ra_hwdec_dxva2gldx,
@@ -176,6 +176,19 @@ int ra_hwdec_mapper_map(struct ra_hwdec_mapper *mapper, struct mp_image *img)
     return 0;
 }
 
+int ra_hwdec_mapper_begin_access(struct ra_hwdec_mapper *mapper)
+{
+    if (!mapper->driver->begin_access)
+        return 0;
+    return mapper->driver->begin_access(mapper);
+}
+
+void ra_hwdec_mapper_end_access(struct ra_hwdec_mapper *mapper)
+{
+    if (mapper->driver->end_access)
+        mapper->driver->end_access(mapper);
+}
+
 static int ra_hwdec_validate_opt_full(struct mp_log *log, bool include_modes,
                                       const m_option_t *opt,
                                       struct bstr name, const char **value)
@@ -253,7 +266,7 @@ void ra_hwdec_ctx_init(struct ra_hwdec_ctx *ctx, struct mp_hwdec_devices *devs,
     mp_assert(ctx->ra_ctx);
 
     /*
-     * By default, or if the option value is "auto", we will not pre-emptively
+     * By default, or if the option value is "auto", we will not preemptively
      * load any interops, and instead allow them to be loaded on-demand.
      *
      * If the option value is "no", then no interops will be loaded now, and

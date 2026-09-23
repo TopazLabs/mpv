@@ -147,10 +147,10 @@ static enum spa_audio_channel mp_speaker_id_to_spa(struct ao *ao, enum mp_speake
     case MP_SPEAKER_ID_TBR:  return SPA_AUDIO_CHANNEL_TRR;
     case MP_SPEAKER_ID_DL:   return SPA_AUDIO_CHANNEL_FL;
     case MP_SPEAKER_ID_DR:   return SPA_AUDIO_CHANNEL_FR;
-    case MP_SPEAKER_ID_WL:   return SPA_AUDIO_CHANNEL_FL;
-    case MP_SPEAKER_ID_WR:   return SPA_AUDIO_CHANNEL_FR;
+    case MP_SPEAKER_ID_WL:   return SPA_AUDIO_CHANNEL_FLW;
+    case MP_SPEAKER_ID_WR:   return SPA_AUDIO_CHANNEL_FRW;
     case MP_SPEAKER_ID_SDL:  return SPA_AUDIO_CHANNEL_SL;
-    case MP_SPEAKER_ID_SDR:  return SPA_AUDIO_CHANNEL_SL;
+    case MP_SPEAKER_ID_SDR:  return SPA_AUDIO_CHANNEL_SR;
     case MP_SPEAKER_ID_LFE2: return SPA_AUDIO_CHANNEL_LFE2;
     case MP_SPEAKER_ID_TSL:  return SPA_AUDIO_CHANNEL_TSL;
     case MP_SPEAKER_ID_TSR:  return SPA_AUDIO_CHANNEL_TSR;
@@ -195,7 +195,7 @@ static void on_process(void *userdata)
     int64_t end_time = mp_time_ns();
     end_time += MP_TIME_S_TO_NS(nframes) / ao->samplerate;
     end_time += MP_TIME_S_TO_NS(time.delay) * time.rate.num / time.rate.denom;
-    end_time += MP_TIME_S_TO_NS(time.queued) / ao->samplerate;
+    end_time += MP_TIME_S_TO_NS(time.queued / ao->sstride) / ao->samplerate;
     end_time += MP_TIME_S_TO_NS(time.buffered) / ao->samplerate;
     end_time -= pw_stream_get_nsec(p->stream) - time.now;
 
@@ -505,11 +505,6 @@ static int pipewire_init_boilerplate(struct ao *ao)
     if (p->loop == NULL)
         return -1;
 
-    pw_thread_loop_lock(p->loop);
-
-    if (pw_thread_loop_start(p->loop) < 0)
-        goto error;
-
     struct pw_properties *props = NULL;
 #if !PW_CHECK_VERSION(1, 3, 81)
     props = pw_properties_new(PW_KEY_CONFIG_NAME, "client-rt.conf", NULL);
@@ -525,7 +520,7 @@ static int pipewire_init_boilerplate(struct ao *ao)
     if (!p->core) {
         MP_MSG(ao, ao->probing ? MSGL_V : MSGL_ERR,
                "Could not connect to context '%s': %s\n",
-               p->options.remote, mp_strerror(errno));
+               p->options.remote ? p->options.remote : "(default)", mp_strerror(errno));
         pw_context_destroy(context);
         goto error;
     }
@@ -533,7 +528,8 @@ static int pipewire_init_boilerplate(struct ao *ao)
     if (pw_core_add_listener(p->core, &p->core_listener, &core_events, ao) < 0)
         goto error;
 
-    pw_thread_loop_unlock(p->loop);
+    if (pw_thread_loop_start(p->loop) < 0)
+        goto error;
 
     if (!session_has_sinks(ao)) {
         MP_VERBOSE(ao, "PipeWire does not have any audio sinks, skipping\n");
@@ -543,7 +539,6 @@ static int pipewire_init_boilerplate(struct ao *ao)
     return 0;
 
 error:
-    pw_thread_loop_unlock(p->loop);
     return -1;
 }
 
@@ -577,16 +572,18 @@ static int init(struct ao *ao)
     struct pw_properties *props = pw_properties_new(
         PW_KEY_MEDIA_TYPE, "Audio",
         PW_KEY_MEDIA_CATEGORY, "Playback",
-        PW_KEY_MEDIA_ROLE, ao->init_flags & AO_INIT_MEDIA_ROLE_MUSIC ?  "Music" : "Movie",
         PW_KEY_NODE_NAME, ao->client_name,
         PW_KEY_NODE_DESCRIPTION, ao->client_name,
         PW_KEY_APP_NAME, ao->client_name,
         PW_KEY_APP_ID, ao->client_name,
         PW_KEY_APP_ICON_NAME, ao->client_name,
-        PW_KEY_NODE_ALWAYS_PROCESS, "true",
         PW_KEY_TARGET_OBJECT, ao->device,
         NULL
     );
+
+    if (ao->set_media_role)
+        pw_properties_set(props, PW_KEY_MEDIA_ROLE,
+                          ao->init_flags & AO_INIT_MEDIA_ROLE_MUSIC ? "Music" : "Movie");
 
     if (pipewire_init_boilerplate(ao) < 0)
         goto error_props;
@@ -671,7 +668,7 @@ static int init(struct ao *ao)
 
     pw_thread_loop_unlock(p->loop);
 
-    if (p->init_state == INIT_STATE_ERROR)
+    if (p->init_state != INIT_STATE_SUCCESS)
         goto error;
 
     return 0;
@@ -884,7 +881,7 @@ static void hotplug_uninit(struct ao *ao)
 
 static void list_devs(struct ao *ao, struct ao_device_list *list)
 {
-    ao_device_list_add(list, ao, &(struct ao_device_desc){});
+    ao_device_list_add(list, ao, &(struct ao_device_desc){0});
 
     if (for_each_sink(ao, add_device_to_list, list) < 0)
         MP_WARN(ao, "Could not list devices, list may be incomplete\n");

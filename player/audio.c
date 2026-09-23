@@ -416,7 +416,7 @@ static int reinit_audio_filters_and_output(struct MPContext *mpctx)
     mp_aframe_get_chmap(out_fmt, &out_channels);
 
     int ao_flags = 0;
-    bool spdif_fallback = af_fmt_is_spdif(out_format) &&
+    bool spdif_fallback = !af_fmt_is_pcm(out_format) &&
                           ao_c->spdif_passthrough;
 
     if (opts->ao_null_fallback && !spdif_fallback)
@@ -454,7 +454,7 @@ static int reinit_audio_filters_and_output(struct MPContext *mpctx)
         ao_get_format(mpctx->ao, &ao_rate, &ao_format, &ao_channels);
 
     // Verify passthrough format was not changed.
-    if (mpctx->ao && af_fmt_is_spdif(out_format)) {
+    if (mpctx->ao && !af_fmt_is_pcm(out_format)) {
         if (out_rate != ao_rate || out_format != ao_format ||
             !mp_chmap_equals(&out_channels, &ao_channels))
         {
@@ -872,10 +872,6 @@ void fill_audio_out_buffers(struct MPContext *mpctx)
 
     if (mpctx->ao && ao_query_and_reset_events(mpctx->ao, AO_EVENT_RELOAD))
         reload_audio_output(mpctx);
-
-    if (mpctx->ao && ao_query_and_reset_events(mpctx->ao,
-                                               AO_EVENT_INITIAL_UNBLOCK))
-        ao_unblock(mpctx->ao);
 
     update_throttle(mpctx);
 

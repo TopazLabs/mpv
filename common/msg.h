@@ -54,9 +54,9 @@ struct mp_log *mp_log_new(void *talloc_ctx, struct mp_log *parent,
                           const char *name);
 
 void mp_msg(struct mp_log *log, int lev, const char *format, ...)
-    PRINTF_ATTRIBUTE(3, 4);
+    MP_PRINTF_ATTRIBUTE(3, 4);
 void mp_msg_va(struct mp_log *log, int lev, const char *format, va_list va)
-    PRINTF_ATTRIBUTE(3, 0);
+    MP_PRINTF_ATTRIBUTE(3, 0);
 
 int mp_msg_level(struct mp_log *log);
 
@@ -66,6 +66,10 @@ static inline bool mp_msg_test(struct mp_log *log, int lev)
 }
 
 void mp_msg_set_max_level(struct mp_log *log, int lev);
+
+// Sanitize text for terminal output.
+struct bstr;
+void mp_msg_sanitize(struct bstr *text, bool allow_sgr);
 
 // Convenience macros.
 #define mp_fatal(log, ...)      mp_msg(log, MSGL_FATAL, __VA_ARGS__)

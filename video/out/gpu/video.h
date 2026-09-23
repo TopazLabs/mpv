@@ -77,6 +77,7 @@ enum background_type {
     BACKGROUND_NONE = 0,
     BACKGROUND_COLOR,
     BACKGROUND_TILES,
+    BACKGROUND_BLUR,
 };
 
 enum blend_subs_mode {
@@ -137,8 +138,11 @@ struct gl_video_opts {
     int target_prim;
     int target_trc;
     int target_peak;
+    int hdr_reference_white;
+    int sdr_adjust_gamma;
+    int treat_srgb_as_power22;
     int target_contrast;
-    int target_gamut;
+    char *target_gamut;
     struct gl_tone_map_opts tone_map;
     bool correct_downscaling;
     bool linear_downscaling;
@@ -158,6 +162,8 @@ struct gl_video_opts {
     int background;
     bool use_rectangle;
     struct m_color background_color;
+    struct m_color background_tile_color[2];
+    int background_tile_size;
     bool interpolation;
     float interpolation_threshold;
     int blend_subs;
@@ -188,6 +194,9 @@ enum {
     RENDER_FRAME_DEF = RENDER_FRAME_SUBS | RENDER_FRAME_OSD | RENDER_SCREEN_COLOR,
 };
 
+void scaler_conf_merge(struct scaler_config *dst, const struct scaler_config *src,
+                       enum scaler_unit unit);
+
 struct gl_video *gl_video_init(struct ra *ra, struct mp_log *log,
                                struct mpv_global *g);
 void gl_video_uninit(struct gl_video *p);
@@ -203,8 +212,6 @@ void gl_video_set_fb_depth(struct gl_video *p, int fb_depth);
 void gl_video_perfdata(struct gl_video *p, struct voctrl_performance_data *out);
 void gl_video_set_clear_color(struct gl_video *p, struct m_color color);
 void gl_video_set_osd_pts(struct gl_video *p, double pts);
-bool gl_video_check_osd_change(struct gl_video *p, struct mp_osd_res *osd,
-                               double pts);
 
 void gl_video_screenshot(struct gl_video *p, struct vo_frame *frame,
                          struct voctrl_screenshot *args);

@@ -5,9 +5,7 @@
 #include <libavutil/hwcontext.h>
 
 #include "options/m_option.h"
-
-struct mp_image_pool;
-enum mp_imgfmt;
+#include "video/img_format.h"
 
 struct mp_conversion_filter {
     // Name of the conversion filter.
@@ -111,6 +109,9 @@ struct hwcontext_fns {
                                       struct hwcontext_create_dev_params *params);
     // Return whether this is using some sort of sub-optimal emulation layer.
     bool (*is_emulated)(struct AVBufferRef *hw_device_ctx);
+    // Return whether hardware decoding of the given codec is allowed on this
+    // device. If NULL, all codecs are assumed to be allowed.
+    bool (*is_codec_allowed)(struct AVBufferRef *hw_device_ctx, int av_codec_id);
 };
 
 // The parameter is of type enum AVHWDeviceType (as in int to avoid extensive

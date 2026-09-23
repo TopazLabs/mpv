@@ -53,6 +53,7 @@
 #include "options/m_option.h"
 #include "options/options.h"
 #include "options/path.h"
+#include "osdep/io.h"
 #include "osdep/poll_wrapper.h"
 #include "osdep/threads.h"
 
@@ -293,6 +294,8 @@ static dvb_channels_list_t *dvb_get_channels(struct mp_log *log,
 
         vpid_str[0] = apid_str[0] = tpid_str[0] = 0;
         vdr_loc_str[0] = vdr_par_str[0] = 0;
+        tmp_lcr[0] = tmp_hier[0] = inv[0] = bw[0] = 0;
+        cr[0] = mod[0] = transm[0] = gi[0] = 0;
 
         char *colon = strchr(line, ':');
         if (!colon)
@@ -1090,9 +1093,12 @@ dvb_state_t *dvb_get_state(stream_t *stream)
                     conf_file_name = "channels.conf.atsc";
                     break;
                 case SYS_DVBT:
-                    if (DELSYS_IS_SET(delsys_mask[f], SYS_DVBT2))
-                        continue; /* Add all channels later with T2. */
-                    conf_file_name = "channels.conf.ter";
+                    if (DELSYS_IS_SET(delsys_mask[f], SYS_DVBT2)) {
+                        // only if ter1 is present, interpret as DVB-T, else will be loaded as DVB-T2
+                        conf_file_name = "channels.conf.ter1";
+                    } else {
+                        conf_file_name = "channels.conf.ter";
+                    }
                     break;
                 case SYS_DVBT2:
                     conf_file_name = "channels.conf.ter";
@@ -1101,9 +1107,12 @@ dvb_state_t *dvb_get_state(stream_t *stream)
                     conf_file_name = "channels.conf.isdbt";
                     break;
                 case SYS_DVBS:
-                    if (DELSYS_IS_SET(delsys_mask[f], SYS_DVBS2))
-                        continue; /* Add all channels later with S2. */
-                    conf_file_name = "channels.conf.sat";
+                    if (DELSYS_IS_SET(delsys_mask[f], SYS_DVBS2)) {
+                        // only if sat1 is present, interpret as DVB-S, else will be loaded as DVB-S2
+                        conf_file_name = "channels.conf.sat1";
+                    } else {
+                        conf_file_name = "channels.conf.sat";
+                    }
                     break;
                 case SYS_DVBS2:
                     conf_file_name = "channels.conf.sat";

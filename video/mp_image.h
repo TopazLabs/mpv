@@ -63,6 +63,9 @@ struct mp_image_params {
     int rotate;
     enum mp_stereo3d_mode stereo3d; // image is encoded with this mode
     struct mp_rect crop;        // crop applied on image
+    // Flags for f_enhancement_pair.c to not inherit flags from EL.
+    bool no_dovi;
+    bool no_enhancement_layer;
 };
 
 /* Memory management:
@@ -126,6 +129,8 @@ typedef struct mp_image {
     // Other side data we don't care about.
     struct mp_ff_side_data *ff_side_data;
     int num_ff_side_data;
+    // Optional decoded enhancement-layer frame
+    struct mp_image *enhancement_layer;
 } mp_image_t;
 
 struct mp_ff_side_data {
@@ -162,7 +167,8 @@ void mp_image_set_size(struct mp_image *mpi, int w, int h);
 int mp_image_plane_w(struct mp_image *mpi, int plane);
 int mp_image_plane_h(struct mp_image *mpi, int plane);
 
-void mp_image_setfmt(mp_image_t* mpi, int out_fmt);
+void mp_image_sethwfmt(mp_image_t *mpi, enum mp_imgfmt hw_fmt, enum mp_imgfmt sw_fmt);
+void mp_image_setfmt(mp_image_t* mpi, enum mp_imgfmt out_fmt);
 void mp_image_steal_data(struct mp_image *dst, struct mp_image *src);
 void mp_image_unref_data(struct mp_image *img);
 
