@@ -1,0 +1,37 @@
+steps:
+  - checkout: self
+  - checkout: topaz-conan-dev
+    
+  - template: set_tools_and_deps.yml
+    parameters:
+      OS: 'mac'
+      SHOULD_RESTORE_CONAN_CACHE: true
+
+  - bash: |
+      cd "$(Build.SourcesDirectory)/mpv"
+      conan install ./build-scripts/conanfile.py -u -pr:h ./build-scripts/mac/profile_mac14.0 -pr:b ./build-scripts/mac/profile_mac_armv8 -of ./conan_x64/
+      conan install ./build-scripts/conanfile.py -u -pr:h ./build-scripts/mac/profile_mac_armv8 -pr:b ./build-scripts/mac/profile_mac_armv8 -of ./conan_arm/
+
+    displayName: install conan packages
+
+  - bash: |
+      cd "$(Build.SourcesDirectory)/mpv/build-scripts"
+        sudo ci/build-macos.sh $(VERSION) 0 _
+    displayName: Build arm64
+
+  - bash: |
+      cd "$(Build.SourcesDirectory)/mpv"
+      ci/build-macos-pipeline.sh $(VERSION) 0 _
+    displayName: Build x86_64
+
+  - ${{ if eq(parameters.publish, true) }}:
+    - bash: |
+        mkdir -p ${TOPAZ_CONAN}/prebuilt/topaz-mpv/${VERSION}/profile_mac14.0/build_type\=Release/
+        cp -Rp build/out/mpv/* ${TOPAZ_CONAN}/prebuilt/topaz-mpv/${VERSION}/profile_mac14.0/build_type\=Release/
+
+        cp build-scripts/deploy_conanfile.py ${TOPAZ_CONAN}/prebuilt/topaz-mpv/${VERSION}/conanfile.py
+
+
+        cd ${TOPAZ_CONAN}
+        bash ./run_publish_prebuilt.sh --package-name topaz-mpv --package-version ${VERSION} -r topaz-conan
+      displayname: Publish to conan

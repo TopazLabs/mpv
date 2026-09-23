@@ -1,0 +1,16 @@
+[settings]
+os=Macos
+os.version=11.0
+arch=armv8
+compiler=apple-clang
+compiler.version=14.0
+compiler.libcxx=libc++
+compiler.cppstd=17
+build_type=Release
+zlib-mt*:compiler.runtime=static
+libiconv-mt*:compiler.runtime=static
+lcms-mt*:compiler.runtime=static
+freetype*:compiler.runtime=static
+fribidi*:compiler.runtime=static
+harfbuzz*:compiler.runtime=static
+[options]

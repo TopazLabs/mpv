@@ -1,0 +1,16 @@
+[settings]
+os=Windows
+arch=x86_64
+compiler=msvc
+compiler.version=192
+compiler.cppstd=14
+compiler.runtime=static
+compiler.runtime_type=Release
+build_type=Release
+zlib-mt*:compiler.runtime=static
+libiconv-mt*:compiler.runtime=static
+lcms-mt*:compiler.runtime=static
+freetype*:compiler.runtime=static
+fribidi*:compiler.runtime=static
+harfbuzz*:compiler.runtime=static
+[options]

@@ -23,7 +23,9 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 #if HAVE_COCOA
+#ifndef VK_USE_PLATFORM_METAL_EXT
 #define VK_USE_PLATFORM_METAL_EXT
+#endif
 #endif
 
 #include <libplacebo/vulkan.h>

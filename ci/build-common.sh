@@ -1,4 +1,5 @@
 common_args="--werror \
+-Dgpl=false \
 -Dlibmpv=true \
 -Dtests=true \
 "

@@ -124,9 +124,9 @@ class TitleBar: NSVisualEffectView {
             case MAC_MAT_HUD_WINDOW: return .hudWindow
             case MAC_MAT_FULL_SCREEN: return .fullScreenUI
             case MAC_MAT_TOOL_TIP: return .toolTip
-            case MAC_MAT_CONTENT_BACKGROUND: return .contentBackground
-            case MAC_MAT_UNDER_WINDOW_BACKGROUND: return .underWindowBackground
-            case MAC_MAT_UNDER_PAGE_BACKGROUND: return .underPageBackground
+            case MAC_MAT_CONTENT_BACKGROUND: return .windowBackground
+            case MAC_MAT_UNDER_WINDOW_BACKGROUND: return .windowBackground
+            case MAC_MAT_UNDER_PAGE_BACKGROUND: return .windowBackground
             case MAC_MAT_DARK: return .dark
             case MAC_MAT_LIGHT: return .light
             case MAC_MAT_MEDIUM_LIGHT: return .mediumLight
@@ -134,6 +134,16 @@ class TitleBar: NSVisualEffectView {
             default: return .titlebar
             }
         }()
+
+        if #available(macOS 10.14, *) {
+            self.material = { switch Int(material) {
+                case MAC_MAT_CONTENT_BACKGROUND: return .contentBackground
+                case MAC_MAT_UNDER_WINDOW_BACKGROUND: return .underWindowBackground
+                case MAC_MAT_UNDER_PAGE_BACKGROUND: return .underPageBackground
+                default: return self.material
+                }
+            }()
+        }
     }
 
     func set(color: m_color) {

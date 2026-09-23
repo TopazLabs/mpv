@@ -1,0 +1,353 @@
+# macOS Local Build Notes
+
+## Purpose
+
+This file is the current source of truth for the local macOS build flow.
+
+It exists for two reasons:
+
+1. so the current build can be rerun without rediscovering all the ad hoc steps
+2. so future changes can be evaluated against the reasons this setup exists today
+
+## Current goal
+
+The current macOS path is intended to:
+
+- build `mpv` locally on macOS ARM64
+- use Conan-managed dependencies where practical
+- keep the build LGPL by default
+- make `build/mpv` directly runnable from inside the build directory
+
+## Main files to understand
+
+- `build-scripts/conanfile.py`
+  - Conan consumer recipe for the current mac dependency set
+- `build-scripts/profile_mac_armv8`
+  - Conan profile used for the local ARM64 build
+- `ci/build-macos.sh`
+  - main local build entrypoint
+- `meson.options`
+  - default `gpl` setting is forced off here
+- `ci/build-common.sh`
+  - shared Meson args, also forces `-Dgpl=false`
+- `osdep/mac/meson.build`
+  - includes the Swift bridge wiring used by the mac build
+
+## Current commands
+
+### 1. Install Conan deps
+
+```bash
+conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac_armv8 -of ./conan
+```
+
+This writes Conan metadata, env scripts, copied headers/libs, and generated `.pc`
+files into `./conan`.
+
+### 2. Build
+
+Run from repo root:
+
+```bash
+./ci/build-macos.sh
+```
+
+The script defaults to `CONAN_OUTPUT_DIR=./conan`. Override that only if the
+Conan output folder changes.
+
+### 3. Run from the build directory
+
+```bash
+cd build
+./mpv -v --no-config
+```
+
+This is expected to work after the build script completes.
+
+## Minimal macOS build
+
+There is now a second macOS build entrypoint intended to remove as many optional
+features as possible while still keeping:
+
+- basic local playback
+- `libmpv`
+- LGPL mode
+
+### Minimal build command
+
+Run from repo root:
+
+```bash
+bash ./ci/build-macos-minimal.sh
+```
+
+This defaults to `MACOS_ARCH=arm64` and now targets macOS `11.0` for the
+minimal macOS build path.
+
+For an Intel minimal build from Apple Silicon, install the Intel Conan output and
+then run:
+
+```bash
+conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac14.0 -of ./conan-x86_64
+MACOS_ARCH=x86_64 ./ci/build-macos-minimal.sh
+```
+
+The Intel path uses `ci/x86_64-cross-file.txt` for Meson and stages FFmpeg
+runtime libraries under `builds-x86`, matching the current Intel dylib layout.
+
+### Minimal build outputs
+
+- build directory: `build-minimal/`
+- install prefix: `~/out/mpv-minimal`
+
+### Run the minimal binary
+
+```bash
+cd build-minimal
+./mpv -v --no-config
+```
+
+### What the minimal build disables
+
+The minimal path explicitly disables these optional features:
+
+- `tests`
+- `cplugins`
+- `javascript`
+- `jpeg`
+- `lcms2`
+- `libarchive`
+- `libavdevice`
+- `libbluray`
+- `rubberband`
+- `uchardet`
+- `vapoursynth`
+- `zimg`
+- `lua`
+- `vulkan`
+- `videotoolbox-gl`
+- `videotoolbox-pl`
+- `macos-media-player`
+- `macos-touchbar`
+- `drm`
+- `wayland`
+- `x11`
+
+### What still remains required in this tree
+
+Even the minimal build still keeps these pieces:
+
+- `libass`
+- `libplacebo`
+- `cocoa`
+- `coreaudio`
+- `gl`
+- `gl-cocoa`
+- `plain-gl`
+- `iconv`
+- `zlib`
+- `swift-build`
+- `macos-cocoa-cb`
+
+Reason:
+
+- `libass` and `libplacebo` are effectively core in the current mpv tree/fork
+- `swift-build` is still needed for the current Cocoa CLI path
+- `macos-cocoa-cb` is kept because the target still includes `libmpv`
+
+If you want to go even smaller than this, it is no longer just a build-flag
+cleanup. The next step would be a deeper refactor/audit of whether `libplacebo`,
+`libass`, or the current Swift/Cocoa assumptions can be made optional again.
+
+## Why the current flow looks like this
+
+### LGPL
+
+This repo is currently configured for LGPL builds.
+
+- `meson.options` defaults `gpl` to `false`
+- `ci/build-common.sh` adds `-Dgpl=false`
+- Windows/Mingw scripts were also adjusted so they do not explicitly re-enable GPL
+
+If a future change turns GPL back on, treat that as intentional policy change, not
+an incidental build tweak.
+
+### Conan is used for core runtime deps, not everything
+
+The current Conan recipe intentionally keeps the dependency set narrower than some
+older experiments.
+
+`libass` is not carried as a Conan package in this flow. Instead, the build forces
+a Meson fallback for `libass`, and `freetype`, `fribidi`, and `harfbuzz` are
+expected outside the Conan recipe.
+
+Reason:
+
+- this matched the direction you wanted after revisiting the README/libass deps
+- it avoided reintroducing extra Conan-side text stack churn while getting the mac
+  build working again
+
+### `libass` is forced as a subproject
+
+`ci/build-macos.sh` writes `subprojects/libass.wrap` if needed and uses:
+
+```bash
+--force-fallback-for=libass
+```
+
+Reason:
+
+- keeps subtitle rendering stack buildable even though those deps are no longer
+  being driven by Conan here
+
+### pkg-config normalization exists because copied FFmpeg `.pc` files were wrong
+
+The copied FFmpeg `.pc` files inside `./conan/lib/pkgconfig` had stale relative
+paths like `./builds-arm/include` and `./builds-arm/lib`.
+
+The mac build script rewrites those to point at the actual `./conan` output
+folder before Meson runs.
+
+Reason:
+
+- Meson found the right FFmpeg package versions
+- but compilation failed until the include/library paths in those `.pc` files were
+  corrected
+
+### Conan include dir is forced early
+
+The build script injects `-I${CONAN_OUTPUT_DIR}/include` into `CFLAGS`, and
+`meson.build` includes `./conan/include` in the public include set.
+
+Reason:
+
+- `/opt/local/include` was otherwise winning include order in some compile units
+- that caused FFmpeg header/API mismatches even when pkg-config resolved the Conan
+  FFmpeg libraries
+
+### `builds-arm` exists for runtime compatibility
+
+The current FFmpeg dylibs still expect a `builds-arm/lib/...` runtime layout.
+
+The build flow handles that in two ways:
+
+- repo root gets a symlink: `builds-arm -> conan`
+- build dir gets a copied runtime folder: `build/builds-arm/`
+
+Reason:
+
+- this makes both the smoke test and `cd build && ./mpv ...` work without having
+  to manually export runtime library paths each time
+
+More explicitly:
+
+- when you run `./build/mpv` from repo root, the binary can resolve `./builds-arm/...`
+  through the repo-root symlink
+- when you `cd build` and run `./mpv`, the binary resolves `./builds-arm/...`
+  relative to `build/`, so it needs a real `build/builds-arm/` runtime folder there
+
+So yes, there is symlinking involved, but only at repo root. Inside `build/`, the
+runtime folder is currently copied/staged, not symlinked.
+
+## Tooling assumptions
+
+- Meson must exist either as:
+  - a `meson` executable on `PATH`, or
+  - the Python `mesonbuild` module
+- `ninja` must be available
+- Conan output must already exist in `./conan`
+
+## Generated paths
+
+These paths are generated by the current local build flow:
+
+- `conan/`
+- `subprojects/`
+- `build/`
+- `builds-arm`
+- `build/builds-arm/`
+
+Treat these as build artifacts or generated support state unless there is a
+specific reason to version-control part of them.
+
+## Quick verification
+
+The build script itself finishes by running:
+
+```bash
+./build/mpv -v --no-config
+```
+
+For manual verification later, the minimum useful check is:
+
+```bash
+cd build
+./mpv -v --no-config
+```
+
+What you want to see:
+
+- mpv starts
+- FFmpeg library versions are printed
+- configuration shows `-Dgpl=false`
+
+## Troubleshooting notes
+
+### Conan deps are installed but Meson still finds wrong libraries
+
+Check:
+
+- `./conan/lib/pkgconfig/*.pc`
+- `PKG_CONFIG_PATH`
+- whether `./conan/include` is ahead of `/opt/local/include`
+
+Reason this matters:
+
+- the build previously compiled against the wrong FFmpeg headers until Conan
+  include paths were forced earlier
+
+### `build/mpv` links but will not launch
+
+Check whether:
+
+- `build/builds-arm/` exists
+- `builds-arm -> conan` exists at repo root
+
+Reason this matters:
+
+- current FFmpeg dylibs still look for a `builds-arm/lib/...` style runtime path
+
+### Swift or libplacebo failures
+
+The current working setup already includes fixes for:
+
+- Python 3.13 compatibility in the vendored `libplacebo` generator
+- Swift include path access to generated `libplacebo/config.h`
+- Vulkan macro redefinition on macOS
+
+If these regress, inspect:
+
+- `subprojects/libplacebo/src/vulkan/utils_gen.py`
+- `osdep/mac/meson.build`
+- `video/out/vulkan/common.h`
+
+## Previous macOS flow
+
+Reference from the older local mac workflow:
+
+- `MPV_INSTALL_PREFIX` was `$(pwd)/build/out/mpv`
+- `meson setup` used `--cross-file ci/x86_64-cross-file.txt` when cross-compiling
+- `--wrap-mode=forcefallback` was enabled
+- `-Ddefault_library=shared`
+- `-Dtests=false`
+- `-Dlua=disabled`
+- `-Djpeg=disabled`
+- `libass` and `libplacebo` options were configured explicitly in the `meson setup` command
+- after install, dylibs were rewritten with:
+
+```bash
+python build-scripts/fixDeps.py $MPV_INSTALL_PREFIX/lib/*.dylib
+```
+
+Keep this as reference when comparing the current Conan-backed flow against the
+older direct Meson/mac packaging approach.

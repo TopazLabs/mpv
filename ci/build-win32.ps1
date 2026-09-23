@@ -307,8 +307,8 @@ meson setup build `
     -Dc_args="-I$amfExtractPath" `
     -Dlibmpv=false `
     -Dtests=true `
-    -Dgpl=true `
-    -Dffmpeg:gpl=enabled `
+    -Dgpl=false `
+    -Dffmpeg:gpl=disabled `
     -Dffmpeg:tests=enabled `
     -Dffmpeg:programs=enabled `
     -Dffmpeg:sdl2=disabled `
