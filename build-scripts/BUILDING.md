@@ -13,10 +13,10 @@ It exists for two reasons:
 
 The current macOS path is intended to:
 
-- build `mpv` locally on macOS ARM64
+- build `mpv` locally on macOS ARM64 (or Intel via cross-compile)
 - use Conan-managed dependencies where practical
 - keep the build LGPL by default
-- make `build/mpv` directly runnable from inside the build directory
+- make `build-minimal/mpv` directly runnable from inside the build directory
 
 ## Main files to understand
 
@@ -24,8 +24,8 @@ The current macOS path is intended to:
   - Conan consumer recipe for the current mac dependency set
 - `build-scripts/profile_mac_armv8`
   - Conan profile used for the local ARM64 build
-- `ci/build-macos.sh`
-  - main local build entrypoint
+- `ci/build-macos-minimal.sh`
+  - the build entrypoint (the only one this document recommends)
 - `meson.options`
   - default `gpl` setting is forced off here
 - `ci/build-common.sh`
@@ -33,7 +33,11 @@ The current macOS path is intended to:
 - `osdep/mac/meson.build`
   - includes the Swift bridge wiring used by the mac build
 
+
+
 ## Current commands
+
+
 
 ### 1. Install Conan deps
 
@@ -49,7 +53,7 @@ files into `./conan`.
 Run from repo root:
 
 ```bash
-./ci/build-macos.sh
+bash ./ci/build-macos-minimal.sh
 ```
 
 The script defaults to `CONAN_OUTPUT_DIR=./conan`. Override that only if the
@@ -58,7 +62,7 @@ Conan output folder changes.
 ### 3. Run from the build directory
 
 ```bash
-cd build
+cd build-minimal
 ./mpv -v --no-config
 ```
 
@@ -66,12 +70,14 @@ This is expected to work after the build script completes.
 
 ## Minimal macOS build
 
-There is now a second macOS build entrypoint intended to remove as many optional
-features as possible while still keeping:
+`ci/build-macos-minimal.sh` removes as many optional features as possible while
+still keeping:
 
 - basic local playback
 - `libmpv`
 - LGPL mode
+
+
 
 ### Minimal build command
 
@@ -81,15 +87,16 @@ Run from repo root:
 bash ./ci/build-macos-minimal.sh
 ```
 
-This defaults to `MACOS_ARCH=arm64` and now targets macOS `11.0` for the
-minimal macOS build path.
+This defaults to `MACOS_ARCH=arm64` and targets macOS `11.0`.
 
-For an Intel minimal build from Apple Silicon, install the Intel Conan output and
-then run:
+For an Intel minimal build from Apple Silicon, install the Intel Conan output
+into `./conan` (delete `./conan` first when switching architectures, otherwise
+arm64 and x86_64 libraries get mixed) and then run:
 
 ```bash
-conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac14.0 -of ./conan-x86_64
-MACOS_ARCH=x86_64 ./ci/build-macos-minimal.sh
+rm -rf ./conan
+conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac14.0 -of ./conan
+CONAN_OUTPUT_DIR=./conan MACOS_ARCH=x86_64 ./ci/build-macos-minimal.sh
 ```
 
 The Intel path uses `ci/x86_64-cross-file.txt` for Meson and stages FFmpeg
@@ -97,8 +104,19 @@ runtime libraries under `builds-x86`, matching the current Intel dylib layout.
 
 ### Minimal build outputs
 
-- build directory: `build-minimal/`
-- install prefix: `~/out/mpv-minimal`
+| | arm64 | x86_64 |
+|---|---|---|
+| build directory | `build-minimal/` | `build-minimal-x86_64/` |
+| install prefix | `~/out/mpv-minimal` | `~/out/mpv-minimal-x86_64` |
+| full package | `build-minimal/package-macos-armv8` | `build-minimal-x86_64/package-macos-x86_64` |
+| slim package | `build-minimal/package-macos-armv8-slim` | `build-minimal-x86_64/package-macos-x86_64-slim` |
+
+The slim package is the one to publish to topaz-conan. It only contains
+`bin/mpv`, `include/mpv/{client,stream_cb,render_gl,render}.h` and the
+`libmpv`, `libfribidi`, `libiconv` and `libcharset` dylibs. FFmpeg libraries are
+provided by `topaz-ffmpeg` at runtime.
+
+
 
 ### Run the minimal binary
 
@@ -107,6 +125,8 @@ cd build-minimal
 ./mpv -v --no-config
 ```
 
+
+
 ### What the minimal build disables
 
 The minimal path explicitly disables these optional features:
@@ -114,6 +134,7 @@ The minimal path explicitly disables these optional features:
 - `tests`
 - `cplugins`
 - `javascript`
+- `libcurl`
 - `jpeg`
 - `lcms2`
 - `libarchive`
@@ -132,6 +153,8 @@ The minimal path explicitly disables these optional features:
 - `drm`
 - `wayland`
 - `x11`
+
+
 
 ### What still remains required in this tree
 
@@ -161,6 +184,8 @@ cleanup. The next step would be a deeper refactor/audit of whether `libplacebo`,
 
 ## Why the current flow looks like this
 
+
+
 ### LGPL
 
 This repo is currently configured for LGPL builds.
@@ -185,11 +210,13 @@ Reason:
 
 - this matched the direction you wanted after revisiting the README/libass deps
 - it avoided reintroducing extra Conan-side text stack churn while getting the mac
-  build working again
+build working again
+
+
 
 ### `libass` is forced as a subproject
 
-`ci/build-macos.sh` writes `subprojects/libass.wrap` if needed and uses:
+`ci/build-macos-minimal.sh` writes `subprojects/libass.wrap` if needed and uses:
 
 ```bash
 --force-fallback-for=libass
@@ -198,7 +225,9 @@ Reason:
 Reason:
 
 - keeps subtitle rendering stack buildable even though those deps are no longer
-  being driven by Conan here
+being driven by Conan here
+
+
 
 ### pkg-config normalization exists because copied FFmpeg `.pc` files were wrong
 
@@ -212,7 +241,9 @@ Reason:
 
 - Meson found the right FFmpeg package versions
 - but compilation failed until the include/library paths in those `.pc` files were
-  corrected
+corrected
+
+
 
 ### Conan include dir is forced early
 
@@ -223,7 +254,9 @@ Reason:
 
 - `/opt/local/include` was otherwise winning include order in some compile units
 - that caused FFmpeg header/API mismatches even when pkg-config resolved the Conan
-  FFmpeg libraries
+FFmpeg libraries
+
+
 
 ### `builds-arm` exists for runtime compatibility
 
@@ -231,22 +264,22 @@ The current FFmpeg dylibs still expect a `builds-arm/lib/...` runtime layout.
 
 The build flow handles that in two ways:
 
-- repo root gets a symlink: `builds-arm -> conan`
-- build dir gets a copied runtime folder: `build/builds-arm/`
+- repo root gets a symlink: `builds-arm -> conan` (`builds-x86` for Intel)
+- build dir gets a copied runtime folder: `build-minimal/builds-arm/`
 
 Reason:
 
 - this makes both the smoke test and `cd build && ./mpv ...` work without having
-  to manually export runtime library paths each time
+to manually export runtime library paths each time
 
 More explicitly:
 
-- when you run `./build/mpv` from repo root, the binary can resolve `./builds-arm/...`
-  through the repo-root symlink
-- when you `cd build` and run `./mpv`, the binary resolves `./builds-arm/...`
-  relative to `build/`, so it needs a real `build/builds-arm/` runtime folder there
+- when you run `./build-minimal/mpv` from repo root, the binary can resolve `./builds-arm/...`
+through the repo-root symlink
+- when you `cd build-minimal` and run `./mpv`, the binary resolves `./builds-arm/...`
+relative to `build-minimal/`, so it needs a real `build-minimal/builds-arm/` runtime folder there
 
-So yes, there is symlinking involved, but only at repo root. Inside `build/`, the
+So yes, there is symlinking involved, but only at repo root. Inside `build-minimal/`, the
 runtime folder is currently copied/staged, not symlinked.
 
 ## Tooling assumptions
@@ -257,15 +290,17 @@ runtime folder is currently copied/staged, not symlinked.
 - `ninja` must be available
 - Conan output must already exist in `./conan`
 
+
+
 ## Generated paths
 
 These paths are generated by the current local build flow:
 
 - `conan/`
 - `subprojects/`
-- `build/`
-- `builds-arm`
-- `build/builds-arm/`
+- `build-minimal/` (`build-minimal-x86_64/` for Intel)
+- `builds-arm` (`builds-x86` for Intel)
+- `build-minimal/builds-arm/`
 
 Treat these as build artifacts or generated support state unless there is a
 specific reason to version-control part of them.
@@ -275,13 +310,13 @@ specific reason to version-control part of them.
 The build script itself finishes by running:
 
 ```bash
-./build/mpv -v --no-config
+./build-minimal/mpv -v --no-config
 ```
 
 For manual verification later, the minimum useful check is:
 
 ```bash
-cd build
+cd build-minimal
 ./mpv -v --no-config
 ```
 
@@ -291,7 +326,11 @@ What you want to see:
 - FFmpeg library versions are printed
 - configuration shows `-Dgpl=false`
 
+
+
 ## Troubleshooting notes
+
+
 
 ### Conan deps are installed but Meson still finds wrong libraries
 
@@ -304,18 +343,22 @@ Check:
 Reason this matters:
 
 - the build previously compiled against the wrong FFmpeg headers until Conan
-  include paths were forced earlier
+include paths were forced earlier
 
-### `build/mpv` links but will not launch
+
+
+### `build-minimal/mpv` links but will not launch
 
 Check whether:
 
-- `build/builds-arm/` exists
+- `build-minimal/builds-arm/` exists
 - `builds-arm -> conan` exists at repo root
 
 Reason this matters:
 
 - current FFmpeg dylibs still look for a `builds-arm/lib/...` style runtime path
+
+
 
 ### Swift or libplacebo failures
 
@@ -330,6 +373,8 @@ If these regress, inspect:
 - `subprojects/libplacebo/src/vulkan/utils_gen.py`
 - `osdep/mac/meson.build`
 - `video/out/vulkan/common.h`
+
+
 
 ## Previous macOS flow
 

@@ -14,16 +14,11 @@ if [[ "${MACOS_ARCH}" == "test" ]]; then
     c_args="-Werror"
 fi
 
-PKG_CONFIG_PATH="$(brew --prefix libarchive)/lib/pkgconfig/" CC="${CC}" CXX="${CXX}" \
-meson setup build $common_args \
-  -Dobjc_args="${objc_args}" \
-  -Dc_args="${c_args}" \
-  -D{caca,cdda,dvda,dvdnav,gl,iconv,lcms2,libarchive,libbluray,lua,jpeg}=enabled \
-  -D{plain-gl,rubberband,zimg,zlib}=enabled \
 FFMPEG_SYSROOT="${HOME}/deps/sysroot"
 CONAN_OUTPUT_DIR="${CONAN_OUTPUT_DIR:-./conan}"
 MPV_INSTALL_PREFIX="${HOME}/out/mpv"
 PACKAGE_OUTPUT_DIR="${PACKAGE_OUTPUT_DIR:-./build/package-macos-armv8}"
+SLIM_PACKAGE_OUTPUT_DIR="${SLIM_PACKAGE_OUTPUT_DIR:-./build/package-macos-armv8-slim}"
 SUBPROJECTS_DIR="subprojects"
 LIBASS_WRAP="${SUBPROJECTS_DIR}/libass.wrap"
 
@@ -103,7 +98,7 @@ CFLAGS="-I${DEPENDENCY_OUTPUT_DIR}/include ${CFLAGS}" \
 CC="${CC}" CXX="${CXX}" \
 "${MESON[@]}" setup build --force-fallback-for=libass $common_args \
   -Dprefix="${MPV_INSTALL_PREFIX}" \
-  -Dobjc_args="-Wno-error=deprecated -Wno-error=deprecated-declarations" \
+  -Dobjc_args="${objc_args}" \
   -Dlibass:coretext=enabled \
   -Dlibass:fontconfig=disabled \
   -D{gl,iconv,lcms2,lua,jpeg,plain-gl,zlib}=enabled \
@@ -120,6 +115,14 @@ fi
 
 ./ci/package-macos.sh "${MPV_INSTALL_PREFIX}" "${DEPENDENCY_OUTPUT_DIR}" "${PACKAGE_OUTPUT_DIR}"
 echo "macOS package directory: ${PACKAGE_OUTPUT_DIR}"
+
+# Second, trimmed package containing only the files published to topaz-conan.
+rm -rf "${SLIM_PACKAGE_OUTPUT_DIR}"
+mkdir -p "${SLIM_PACKAGE_OUTPUT_DIR}/bin" "${SLIM_PACKAGE_OUTPUT_DIR}/include/mpv" "${SLIM_PACKAGE_OUTPUT_DIR}/lib"
+cp -a "${PACKAGE_OUTPUT_DIR}/bin/mpv" "${SLIM_PACKAGE_OUTPUT_DIR}/bin/"
+cp -a "${PACKAGE_OUTPUT_DIR}/include/mpv/"{client,stream_cb,render_gl,render}.h "${SLIM_PACKAGE_OUTPUT_DIR}/include/mpv/"
+cp -a "${PACKAGE_OUTPUT_DIR}/lib/"{libcharset,libfribidi,libiconv,libmpv}*.dylib "${SLIM_PACKAGE_OUTPUT_DIR}/lib/"
+echo "macOS slim package directory: ${SLIM_PACKAGE_OUTPUT_DIR}"
 
 # Keep a runnable copy of the Conan runtime inside build/ so mpv can
 # be launched directly from that directory.
@@ -142,4 +145,6 @@ PY
 
 ln -sfn "${DEPENDENCY_OUTPUT_DIR}" ./builds-arm
 
-./build/mpv -v --no-config
+# conanrun.sh puts Conan's libtiff on DYLD_LIBRARY_PATH, which shadows
+# ImageIO's private libTIFF.dylib and crashes the Now Playing artwork code.
+env -u DYLD_LIBRARY_PATH ./build/mpv -v --no-config

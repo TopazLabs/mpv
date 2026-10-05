@@ -38,6 +38,7 @@ CONAN_OUTPUT_DIR="${CONAN_OUTPUT_DIR:-${DEFAULT_CONAN_OUTPUT_DIR}}"
 BUILD_DIR="${BUILD_DIR:-${DEFAULT_BUILD_DIR}}"
 MPV_INSTALL_PREFIX="${MPV_INSTALL_PREFIX:-${DEFAULT_MPV_INSTALL_PREFIX}}"
 PACKAGE_OUTPUT_DIR="${PACKAGE_OUTPUT_DIR:-${DEFAULT_PACKAGE_OUTPUT_DIR}}"
+SLIM_PACKAGE_OUTPUT_DIR="${SLIM_PACKAGE_OUTPUT_DIR:-${PACKAGE_OUTPUT_DIR}-slim}"
 SWIFT_FLAGS="${SWIFT_FLAGS:-${DEFAULT_SWIFT_FLAGS}}"
 SUBPROJECTS_DIR="subprojects"
 LIBASS_WRAP="${SUBPROJECTS_DIR}/libass.wrap"
@@ -134,6 +135,7 @@ CC="${CC}" CXX="${CXX}" \
   -Dmacos-cocoa-cb=enabled \
   -Dcplugins=disabled \
   -Djavascript=disabled \
+  -Dlibcurl=disabled \
   -Djpeg=disabled \
   -Dlcms2=disabled \
   -Dlibarchive=disabled \
@@ -163,6 +165,14 @@ fi
 
 ./ci/package-macos.sh "${MPV_INSTALL_PREFIX}" "${DEPENDENCY_OUTPUT_DIR}" "${PACKAGE_OUTPUT_DIR}"
 echo "Success: minimal macOS package directory: ${PACKAGE_OUTPUT_DIR}"
+
+# Second, trimmed package containing only the files published to topaz-conan.
+rm -rf "${SLIM_PACKAGE_OUTPUT_DIR}"
+mkdir -p "${SLIM_PACKAGE_OUTPUT_DIR}/bin" "${SLIM_PACKAGE_OUTPUT_DIR}/include/mpv" "${SLIM_PACKAGE_OUTPUT_DIR}/lib"
+cp -a "${PACKAGE_OUTPUT_DIR}/bin/mpv" "${SLIM_PACKAGE_OUTPUT_DIR}/bin/"
+cp -a "${PACKAGE_OUTPUT_DIR}/include/mpv/"{client,stream_cb,render_gl,render}.h "${SLIM_PACKAGE_OUTPUT_DIR}/include/mpv/"
+cp -a "${PACKAGE_OUTPUT_DIR}/lib/"{libcharset,libfribidi,libiconv,libmpv}*.dylib "${SLIM_PACKAGE_OUTPUT_DIR}/lib/"
+echo "Success: minimal macOS slim package directory: ${SLIM_PACKAGE_OUTPUT_DIR}"
 
 python3 - "${DEPENDENCY_OUTPUT_DIR}" "${BUILD_DIR}/${RUNTIME_LAYOUT_DIR}" <<'PY'
 from pathlib import Path
