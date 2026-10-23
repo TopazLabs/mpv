@@ -11,6 +11,7 @@ builds-x86
 builds-x86_64
 subprojects/
 build-minimal/
+build-win/
 build-minimal-x86_64/
 .worktrees/
 /build/package-macos-armv8/
