@@ -7,6 +7,8 @@ import os
 
 required_conan_version = ">=2.0"
 FILTERED_HEADER_DIRS = ("aiengine", "videoai")
+# macOS: packages whose files are staged into conan/lib3rdparty/<name>
+MAC_STAGED = ("topaz-ffmpeg", "libiconv", "fribidi", "harfbuzz", "freetype", "zlib", "lcms")
 
 
 class MPVConan(ConanFile):
@@ -23,22 +25,21 @@ class MPVConan(ConanFile):
     }
 
     def configure(self):
+        # Every LGPL library must be a shared library: FFmpeg, libplacebo (meson
+        # subproject), fribidi, libiconv. freetype/harfbuzz are shared too so libass
+        # does not embed copies. zlib and lcms stay static, the same binaries
+        # videoenhanceai uses. Same options on Windows and macOS.
         self.options["libiconv"].shared = True
-        # self.options['glib'].shared = True
-        self.options["harfbuzz"].shared = False
-        self.options["harfbuzz"].with_glib=False
         self.options["fribidi"].shared = True
-        # self.options["lcms"].shared = True
+        self.options["harfbuzz"].shared = True
+        self.options["harfbuzz"].with_glib = False
+        self.options["freetype"].shared = True
+        self.options["freetype"].with_png = False
+        self.options["freetype"].with_bzip2 = False
+        self.options["freetype"].with_brotli = False
+        self.options["freetype"].with_zlib = False
 
         if self.settings.os == "Windows":
-            # LGPL libs (FFmpeg, libplacebo, fribidi, libiconv) must be DLLs.
-            # zlib and lcms stay static, the same binaries videoenhanceai uses.
-            self.options["harfbuzz"].shared = True
-            self.options["freetype"].shared = True
-            self.options["freetype"].with_png = False
-            self.options["freetype"].with_bzip2 = False
-            self.options["freetype"].with_brotli = False
-            self.options["freetype"].with_zlib = False
             self.options["shaderc"].shared = True
             self.options["spirv-cross"].shared = True
             # same as videoenhanceai/deploy/conanfile.py
@@ -47,19 +48,14 @@ class MPVConan(ConanFile):
         self.settings.rm_safe("compiler.cppstd")
         self.settings.rm_safe("compiler.libcxx")
 
-
     def requirements(self):
         self.requires("topaz-ffmpeg/[~8.1.0.0]")
-        # self.requires("topaz_rlm/0.1.2", override=True)
-        # self.requires("videoai/2.0.19", override=True)
-        # self.requires("aiengine/3.8.14", override=True)
         self.requires("zlib/1.2.13")
         self.requires("harfbuzz/8.3.0-topaz")
-        self.requires("fribidi/1.0.13-topaz") # LGPL
-        # self.requires("lcms/2.17")
-        self.requires("libiconv/1.17") # LGPL
+        self.requires("fribidi/1.0.13-topaz")  # LGPL
+        self.requires("libiconv/1.17")  # LGPL
+        self.requires("lcms/2.17")  # libplacebo ICC support
         if self.settings.os == "Windows":
-            self.requires("lcms/2.17")
             # Shader compilers for libplacebo's d3d11 backend
             self.requires("shaderc/2024.1")
             self.requires("spirv-cross/1.3.268.0")
@@ -100,11 +96,16 @@ class MPVConan(ConanFile):
                         excludes=[f"{name}/*" for name in FILTERED_HEADER_DIRS],
                     )
                 if self.settings.os == "Macos":
-                    copy(
-                        self,
-                        "*",
-                        src=os.path.join(dep.package_folder, "include"),
-                        dst="include",
-                        excludes=[f"{name}/*" for name in FILTERED_HEADER_DIRS],
-                    )
-                    copy(self, "*", src=os.path.join(dep.package_folder, "lib"), dst="lib")
+                    # topaz-ffmpeg brings its whole runtime (videoai, opencv, ...) in as
+                    # transitive deps; mpv only builds against FFmpeg and the libraries
+                    # below, everything else is found through the generated .pc files.
+                    name = str(dep.ref).split("/")[0]
+                    if name in MAC_STAGED:
+                        excludes = [f"{n}/*" for n in FILTERED_HEADER_DIRS]
+                        include = os.path.join(dep.package_folder, "include")
+                        dst = os.path.join("lib3rdparty", name)
+                        copy(self, "*", src=os.path.join(dep.package_folder, "lib"), dst=os.path.join(dst, "lib"))
+                        copy(self, "*", src=include, dst=os.path.join(dst, "include"), excludes=excludes)
+                        copy(self, "*", src=os.path.join(dep.package_folder, "licenses"), dst=os.path.join(dst, "licenses"))
+                        # meson.build adds conan/include to the public include dirs
+                        copy(self, "*", src=include, dst="include", excludes=excludes)

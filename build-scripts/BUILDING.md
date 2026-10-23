@@ -6,17 +6,17 @@ below. Read the section for your platform top to bottom before building.
 
 | | Windows | macOS |
 | --- | --- | --- |
-| Entry point | `build-scripts/build-win.ps1` (PowerShell) | `ci/build-macos-minimal.sh` (bash) |
+| Entry point | `build-scripts/build-win.ps1` (PowerShell) | `build-scripts/build-mac.sh` (bash) |
 | Compiler | clang-cl + MSVC link, `/MD` | Apple clang |
 | Conan profile | `build-scripts/profile_win2022` | `build-scripts/profile_mac_armv8` (arm64), `profile_mac14.0` (Intel) |
-| Conan install | done by the script, `--build=never`, pinned by videoenhanceai's lockfile | run by hand before the script |
-| Build dir | `build-win/` | `build-minimal/` (`build-minimal-x86_64/` for Intel) |
-| Package to publish | `build-win/package-windows-x86_64-slim` | `build-minimal/package-macos-armv8-slim` (`…-x86_64-slim`) |
-| `mpv_dll` version used by videoenhanceai | `0.41.0-20260923-1` | `0.41.0-20260923` |
-| LGPL check | `build-scripts/validate-lgpl.ps1`, runs automatically | manual: `mpv -v` (see macOS section) |
+| Conan install | done by the script, `--build=never`, pinned by videoenhanceai's lockfile | done by the script, same |
+| Build dir | `build-win/` | `build-mac/` (`build-mac-x86_64/` for Intel) |
+| Package to publish | `build-win/package-windows-x86_64-slim` | `build-mac/package-macos-armv8-slim` (`build-mac-x86_64/package-macos-x86_64-slim`) |
+| `mpv_dll` version | `0.41.0-20260923-1` | `0.41.0-20260923-1` |
+| LGPL check | `build-scripts/validate-lgpl.ps1`, runs automatically | `build-scripts/validate-lgpl-mac.sh`, runs automatically |
 
-Shared by both platforms: `build-scripts/conanfile.py` (Windows-only parts are inside
-`if self.settings.os == "Windows"`), `meson.build` / `meson.options`, and the topaz-ffmpeg
+Shared by both platforms: `build-scripts/conanfile.py` (platform-only parts are inside
+`if self.settings.os == ...`), `meson.build` / `meson.options`, and the topaz-ffmpeg
 package from topaz-conan. Publishing goes through
 `topaz-conan-dev/prebuilt/mpv_dll/<version>/<platform folder>`.
 
@@ -157,8 +157,15 @@ Building one in topaz-conan-src (from its repo root, on Windows):
 ```bash
 pipenv run python _util/scripts/build_and_publish.py --conan-user '""' --conan-channel '""' \
     -pb _util/conan/profile_win2022 -ph _util/conan/profile_win2022 \
-    -n harfbuzz -v 8.3.0-topaz -s --skip-default-config --normalize-conandata
+    -n harfbuzz -v 8.3.0-topaz -s --skip-default-config --normalize-conandata --skip-existing
 ```
+
+- `--skip-existing`: before each `topaz_config.yml` entry's `conan create`, the script computes that
+  entry's package id and skips it when the latest recipe revision on the remote already has it, or
+  has the same configuration (settings, options, requires) built with another `compiler.cppstd`,
+  which consumers get through Conan's cppstd compatibility. It then uploads only the package ids it
+  built in that run, never other local binaries. Without it, every entry is rebuilt and the upload
+  sends every matching local binary, so an existing package id gets a new package revision.
 
 - `-s` builds without uploading. Before publishing, check that the exported recipe revision is the
   one already on topaz-conan and that the package id matches the table (or is the intended new one).
@@ -166,10 +173,10 @@ pipenv run python _util/scripts/build_and_publish.py --conan-user '""' --conan-c
   `conandata.yml`; without the flag conan-src exports a different recipe revision.
 - harfbuzz's `topaz_config.yml` also builds its static variant, which needs freetype's default
   (static) binary: build freetype first without `--skip-default-config`.
-- Publishing: **never pass `--allow-new-recipe`**, and never re-upload an existing package id. The
-  pipeline uploads with `--package-query <profile settings>`, i.e. every local binary of that recipe
-  that matches the profile, so publish from a clean conan cache (or CI agent) that only holds the
-  intended binary.
+- Publishing: **never pass `--allow-new-recipe`**, and never re-upload an existing package id. Use
+  `--skip-existing`. Without it the script uploads with `--package-query <profile settings>`, i.e.
+  every local binary of that recipe that matches the profile, so you would have to publish from a
+  clean conan cache (or CI agent) that only holds the intended binary.
 
 ## Release procedure (mpv_dll, Windows)
 
@@ -221,120 +228,196 @@ pipenv run python _util/scripts/build_and_publish.py --conan-user '""' --conan-c
 
 # macOS
 
+Same layout as Windows: conan supplies every binary dependency, libass and libplacebo are meson
+subprojects built as shared libraries, and the build ends with an automatic LGPL validation.
+
 ## Quick start
 
 ```bash
 # arm64 (default)
-conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac_armv8 -of ./conan
-bash ./ci/build-macos-minimal.sh
+build-scripts/build-mac.sh --clean
 
-# Intel (cross-compiled from Apple Silicon). Delete ./conan when switching architectures,
-# otherwise arm64 and x86_64 libraries get mixed.
-rm -rf ./conan
-conan install ./build-scripts/conanfile.py -u -pr:b ./build-scripts/profile_mac_armv8 -pr:h ./build-scripts/profile_mac14.0 -of ./conan
-CONAN_OUTPUT_DIR=./conan MACOS_ARCH=x86_64 ./ci/build-macos-minimal.sh
+# Intel (cross-compiled from Apple Silicon, own conan-x86_64/ and build-mac-x86_64/)
+build-scripts/build-mac.sh --arch x86_64 --clean
 ```
 
-`conan install` writes conan metadata, env scripts, copied headers/libs and generated `.pc` files
-into `./conan`; the build script reads `CONAN_OUTPUT_DIR` (default `./conan`). The target is
-macOS `11.0`. The Intel path uses `ci/x86_64-cross-file.txt` for meson and stages FFmpeg runtime
-libraries under `builds-x86`.
+The script must end with `LGPL VALIDATION PASSED` and (arm64) a working `mpv -v --no-config` run.
+Without `--clean` it reuses `conan*/` and `build-mac*/`. `ci/build-macos-minimal.sh` is a thin
+wrapper (`MACOS_ARCH=x86_64` maps to `--arch`).
 
-The script ends by running `./build-minimal/mpv -v --no-config`.
+Options:
 
-## Main files
+- `--arch arm64|x86_64`: default `arm64`. Profiles: `profile_mac_armv8` (build and arm64 host),
+  `profile_mac14.0` (Intel host; the name is misleading).
+- `--clean`: delete `conan*/` and `build-mac*/` first.
+- `--app-lockfile <path>`: videoenhanceai's lockfile. Default:
+  `../videoenhanceai/deploy/lockfiles/conanlock_mac_<armv8|x86_64>`.
 
-- `ci/build-macos-minimal.sh`: the build entry point.
-- `build-scripts/conanfile.py`: conan consumer recipe (shared with Windows).
-- `build-scripts/profile_mac_armv8`, `build-scripts/profile_mac14.0`: conan profiles.
-- `ci/build-common.sh`: shared meson args, forces `-Dgpl=false`.
-- `ci/package-macos.sh`: builds the full package and rewrites dylib references.
-- `osdep/mac/meson.build`: Swift bridge wiring.
+## Prerequisites
 
-## Dependencies
+- Xcode (Swift, Apple clang), macOS deployment target `11.0`.
+- conan 2, logged in to the `topaz-conan` remote.
+- `meson` and `ninja` on `PATH`, Python 3, git and network access (libass and libplacebo are
+  cloned as meson subprojects). `nasm` is optional (libass x86 asm on Intel).
 
-- From conan (`build-scripts/conanfile.py`): topaz-ffmpeg, zlib, harfbuzz (static, no glib; brings
-  freetype), fribidi (shared), libiconv (shared).
-- `libass` is built as a meson subproject: the script writes `subprojects/libass.wrap` (libass
-  `master`) and passes `--force-fallback-for=libass`.
+## What the script does
+
+1. `conan install build-scripts/conanfile.py` with `--lockfile <AppLockfile> --lockfile-partial
+   --build=never`, output in `conan/` (`conan-x86_64/`). Only the packages mpv builds against are
+   copied into `conan/lib3rdparty/<name>` (topaz-ffmpeg, libiconv, fribidi, harfbuzz, freetype, zlib,
+   lcms);
+   topaz-ffmpeg's own runtime (videoai, aiengine, opencv, ...) is not copied or linked.
+2. `package-mac.py stage-ffmpeg`: topaz-ffmpeg's dylibs and `.pc` files use a relative
+   `./builds-<arch>` prefix. The staged copy gets `@rpath/<soname>` install names and absolute
+   `.pc` paths. No `builds-arm` symlinks are needed any more.
+3. `PKG_CONFIG_LIBDIR` is limited to conan's `.pc` files, so MacPorts/Homebrew libraries are never
+   found; nothing from `/opt/local`, `/usr/local` or `/opt/homebrew` is added to include or link
+   paths. Compiler/linker flags (deployment target, conan's libiconv, build rpaths) are written to
+   `conan*/meson-flags.ini` and passed as a meson machine file: in the Intel cross build meson
+   ignores `CFLAGS`/`LDFLAGS` for the host.
+4. Writes `subprojects/libass.wrap` (libass `0.17.4`) and `subprojects/libplacebo.wrap`
+   (libplacebo `v7.360.1`, with submodules), the same versions as Windows. No local edits of the
+   subprojects are needed or supported.
+5. `meson setup` with `-Ddefault_library=shared`, `-Dgpl=false`, `-Dlibmpv=true`, the forced
+   fallbacks for libass/libplacebo, and `-Dlibass:default_library=shared
+   -Dlibplacebo:default_library=shared`; then `meson compile`.
+6. `package-mac.py package`: full package, every non-system dylib relocated to `@loader_path`
+   (`@executable_path/../lib` for `bin/mpv`), build rpaths removed, ad-hoc re-signed. Fails on
+   any dependency that resolves to a host library.
+7. `validate-lgpl-mac.sh`, then `package-mac.py slim`, then `mpv -v --no-config` (arm64).
+
+How dependencies are found:
+
+| Used by | Dependency | Source |
+| --- | --- | --- |
+| mpv | FFmpeg (`libavcodec.62`, ...) | topaz-ffmpeg, shared |
+| mpv | zlib | conan `zlib/1.2.13`, static (same binary as videoenhanceai) |
+| mpv, libass | libiconv | conan `libiconv/1.17`, shared (same binary as videoenhanceai on macOS) |
+| libplacebo | lcms2 | conan `lcms/2.17`, static (same binary as videoenhanceai), OpenGL backend only |
+| libass | freetype, harfbuzz, fribidi | conan, shared (CoreText is the font provider) |
+| mpv | libass, libplacebo | meson subprojects, forced shared |
+
+Disabled in mpv: `tests`, `cplugins`, `javascript`, `libcurl`, `jpeg`, `lcms2`, `libarchive`,
+`libavdevice`, `libbluray`, `rubberband`, `uchardet`, `vapoursynth`, `zimg`, `lua`, `vulkan`,
+`videotoolbox-gl`, `videotoolbox-pl`, `macos-media-player`, `macos-touchbar`, `drm`, `wayland`, `x11`.
+Kept: `libass`, `libplacebo`, `cocoa`, `coreaudio`, `gl`, `gl-cocoa`, `plain-gl`, `iconv`, `zlib`,
+`swift-build`, `macos-cocoa-cb`. In libplacebo every optional dependency is disabled except OpenGL
+and lcms (vulkan, shaderc, glslang, d3d11, dovi, libdovi, xxhash, unwind), so meson cannot pick
+anything up from the host.
 
 ## Outputs
 
 | | arm64 | x86_64 |
 | --- | --- | --- |
-| build directory | `build-minimal/` | `build-minimal-x86_64/` |
-| install prefix | `~/out/mpv-minimal` | `~/out/mpv-minimal-x86_64` |
-| full package | `build-minimal/package-macos-armv8` | `build-minimal-x86_64/package-macos-x86_64` |
-| slim package (publish) | `build-minimal/package-macos-armv8-slim` | `build-minimal-x86_64/package-macos-x86_64-slim` |
+| build directory | `build-mac/` | `build-mac-x86_64/` |
+| full package | `build-mac/package-macos-armv8` | `build-mac-x86_64/package-macos-x86_64` |
+| slim package (publish) | `build-mac/package-macos-armv8-slim` | `build-mac-x86_64/package-macos-x86_64-slim` |
 
-The slim package goes into `topaz-conan-dev/prebuilt/mpv_dll/<version>/macos_armv8` (or
-`macos_x86_64`). It contains `bin/mpv`, `include/mpv/{client,stream_cb,render_gl,render}.h` and the
-`libmpv`, `libfribidi`, `libiconv` and `libcharset` dylibs. FFmpeg comes from `topaz-ffmpeg` at
-runtime.
+| Package | Contents | Use |
+| --- | --- | --- |
+| full | `bin/mpv`, `lib/` with libmpv, libass, libplacebo and every runtime dylib (FFmpeg, videoai/tvai, opencv, freetype, harfbuzz, fribidi, libiconv, ...), headers, licenses | local testing; self-contained |
+| slim | `lib/libmpv.2.dylib`, `lib/libass.9.dylib`, `lib/libplacebo.360.dylib` (+ unversioned symlinks), `include/mpv/{client,stream_cb,render_gl,render}.h`, `LICENSE.LGPL`, `Copyright`, `licenses/` (libass, libplacebo, zlib, lcms) | goes into `mpv_dll` |
 
-## Verification
+The slim package has no `bin/mpv` (apps only use libmpv) and no dependency dylibs: those are
+requirements of the `mpv_dll` recipe and come from their own topaz-conan packages. Every
+cross-reference is `@loader_path/<soname>`, so the app must put all of these dylibs in one folder,
+as it already does for FFmpeg.
+
+## LGPL validation
+
+`build-scripts/validate-lgpl-mac.sh` runs on the full package after every build and fails the
+build unless:
+
+- meson `gpl=false`, `config.h` has `HAVE_GPL 0`, and `libmpv` embeds `-Dgpl=false` and a feature
+  list without `gpl`;
+- every FFmpeg dylib embeds "LGPL version 2.1 or later", and FFmpeg's configure line has no
+  `--enable-gpl`, `--enable-nonfree`, `--enable-version3`, x264, x265 or postproc;
+- no GPL-only libraries (postproc, x264, x265, rubberband, dvdnav, cdio, jack, caca, ...) are shipped;
+- `libmpv` imports FFmpeg, libplacebo and libass as dylibs and defines none of their symbols;
+  `libass` imports freetype, harfbuzz and fribidi as dylibs and defines none of their symbols;
+  iconv is conan's libiconv dylib, not Apple's `/usr/lib/libiconv.2.dylib`;
+- every dependency of every shipped binary is a system library or package-relative, with no
+  rpaths, and no compile/link command of the build uses a MacPorts/Homebrew path;
+- `libmpv` targets macOS `11.0`.
+
+Run it on its own: `build-scripts/validate-lgpl-mac.sh build-mac build-mac/package-macos-armv8`.
+
+## Dependency policy
+
+Same as Windows: every dependency binary is built and published by topaz-conan-src; mpv only
+consumes binaries from topaz-conan. `build-mac.sh` uses `--build=never`; never fix a missing binary
+with `--build=missing`, `conan create` in this repo, or a hand-copied dylib.
+
+- Versions and revisions come from videoenhanceai's lockfile, so mpv and the app resolve the same
+  topaz-ffmpeg, zlib and lcms binaries.
+- mpv-only shared builds in topaz-conan-src (`conan_create_args_mac` in each recipe's
+  `topaz_config.yml`; package ids as published 2026-10-23):
+
+| Package | Options | armv8 | x86_64 |
+| --- | --- | --- | --- |
+| `freetype/2.13.2-topaz` | `shared=True`, `with_png/with_bzip2/with_brotli/with_zlib=False` | `c2d19731…` | `a611eab4…` |
+| `harfbuzz/8.3.0-topaz` | `shared=True`, `with_glib=False` (+ the freetype options) | `97d256a2…` | `1665434c…` |
+| `fribidi/1.0.13-topaz` | `shared=True` (already published) | `40a20ef7…` | `986e14b3…` |
+| `libiconv/1.17` | `shared=True` (already published; same binary as videoenhanceai) | `da36e180…` | `d1a40c97…` |
+
+Building and publishing them in topaz-conan-src (from its repo root, on an Apple Silicon Mac; the
+Intel binaries are cross-built with `-ph _util/conan/profile_mac14.0`):
 
 ```bash
-cd build-minimal
-./mpv -v --no-config
+bash run_build_and_publish.sh -u "" -c "" -r topaz-conan \
+    -pb _util/conan/profile_mac_armv8 -ph _util/conan/profile_mac_armv8 \
+    -n freetype -v 2.13.2-topaz --skip-existing
+bash run_build_and_publish.sh -u "" -c "" -r topaz-conan \
+    -pb _util/conan/profile_mac_armv8 -ph _util/conan/profile_mac_armv8 \
+    -n harfbuzz -v 8.3.0-topaz --skip-existing --normalize-conandata
 ```
 
-Expect: mpv starts, FFmpeg library versions are printed, `Configuration:` shows `-Dgpl=false`, and
-`gpl` is not in the enabled features list.
+- `--skip-existing` (see Windows "Dependency policy") builds and uploads only the
+  `topaz_config.yml` entries whose binary is not on topaz-conan yet. It is what makes the script
+  safe here: without it the script also rebuilds every published variant (e.g. harfbuzz's static
+  default) and uploads them as new package revisions. Add `-s` for a dry run.
+- Never pass `--allow-new-recipe`. The script refuses an upload whose recipe revision is not the
+  latest on topaz-conan.
+- harfbuzz needs `--normalize-conandata` (CRLF `conandata.yml` in the published revision).
+- **`sincosf`**: with newer Xcode SDKs (seen with 26.5 and the 14.4 Command Line Tools SDK), meson
+  finds `sincosf` in libm but `math.h` does not declare it for the 11.0 deployment target, and
+  harfbuzz fails with `use of undeclared identifier 'sincosf'`. harfbuzz's `conan_create_args_mac`
+  entry therefore passes `-c 'tools.build:cxxflags=["-Dsincosf=__sincosf"]'`: `__sincosf` is the
+  SDK's inline wrapper (`__sincosf_stret`, macOS 10.9+), so the math is the same. It is a build
+  flag only: recipe revision and package id are unchanged. The published shared binaries were
+  built this way (on SDK 14.4, `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX14.4.sdk`);
+  the older static ones came from the Azure agents (Xcode 15.4, `compiler.cppstd=17`).
 
-## What the minimal build disables / keeps
+## Release procedure (mpv_dll, macOS)
 
-Disabled: `tests`, `cplugins`, `javascript`, `libcurl`, `jpeg`, `lcms2`, `libarchive`,
-`libavdevice`, `libbluray`, `rubberband`, `uchardet`, `vapoursynth`, `zimg`, `lua`, `vulkan`,
-`videotoolbox-gl`, `videotoolbox-pl`, `macos-media-player`, `macos-touchbar`, `drm`, `wayland`, `x11`.
-
-Kept: `libass`, `libplacebo`, `cocoa`, `coreaudio`, `gl`, `gl-cocoa`, `plain-gl`, `iconv`, `zlib`,
-`swift-build`, `macos-cocoa-cb`.
-
-- `libass` and `libplacebo` are effectively core in this tree.
-- `swift-build` is needed for the Cocoa CLI path; `macos-cocoa-cb` is kept because the target
-  includes `libmpv`.
-
-Going smaller than this is a refactor (making libplacebo/libass/Swift optional), not a flag change.
-
-## Why the flow looks like this
-
-- **FFmpeg `.pc` files are rewritten.** The copied FFmpeg `.pc` files in `./conan/lib/pkgconfig`
-  had stale relative paths (`./builds-arm/include`, `./builds-arm/lib`); the script rewrites them to
-  the real `./conan` folder before meson runs.
-- **The conan include dir comes first.** The script adds `-I${CONAN_OUTPUT_DIR}/include` to `CFLAGS`
-  and `meson.build` includes `./conan/include`, because `/opt/local/include` otherwise won the
-  include order and caused FFmpeg header/API mismatches.
-- **`builds-arm` runtime layout.** The FFmpeg dylibs expect a `builds-arm/lib/...` runtime path
-  (`builds-x86` for Intel). The script creates a repo-root symlink `builds-arm -> conan` (for
-  `./build-minimal/mpv` run from the repo root) and copies a real `build-minimal/builds-arm/` folder
-  (for `cd build-minimal && ./mpv`).
-
-## Tooling
-
-- meson as a `meson` executable on `PATH` or the Python `mesonbuild` module.
-- `ninja` on `PATH`.
-- conan output already in `./conan` (run `conan install` first).
-
-## Generated paths (macOS)
-
-`conan/`, `subprojects/`, `build-minimal/` (`build-minimal-x86_64/`), `builds-arm` (`builds-x86`),
-`build-minimal/builds-arm/`.
+1. **Deps**: if a dependency changed, build and publish it from topaz-conan-src as above, then check
+   that every mac binary is on the latest recipe revision
+   (`remote_matrix.py freetype/2.13.2-topaz harfbuzz/8.3.0-topaz`).
+2. **Build**: `build-scripts/build-mac.sh --clean` and `--arch x86_64 --clean`, both ending with
+   `LGPL VALIDATION PASSED`.
+3. **Package**: copy each slim package into
+   `topaz-conan-dev/prebuilt/mpv_dll/<version>/macos_armv8` / `macos_x86_64`. Use a **new** `mpv_dll`
+   version whenever its `conanfile.py` changes.
+4. **Recipe**: keep the `mpv_dll` recipe in sync with `build-scripts/conanfile.py` (same refs, same
+   shared options). Requirements are runtime-only (`headers=False, libs=False, run=True`).
+5. **Test in videoenhanceai before uploading**: `conan export-pkg` from the version folder with
+   `-pr:h <app>/deploy/mac/profile_mac_<arch> -pr:b <app>/deploy/mac/profile_mac_armv8 --lockfile
+   <app>/deploy/lockfiles/conanlock_mac_<arch> --lockfile-partial`, bump `mpv_dll` in
+   `deploy/conanfile.py`, update the lockfile, and check that every dylib that `libmpv`, `libass` and
+   `libplacebo` import is in the app bundle's frameworks folder.
+6. **Upload** only new package ids, then set the `mpv_dll` timestamp in the app lockfile.
 
 ## Troubleshooting
 
-- **Meson finds the wrong libraries/headers**: check `./conan/lib/pkgconfig/*.pc`, `PKG_CONFIG_PATH`,
-  and that `./conan/include` comes before `/opt/local/include`.
-- **`build-minimal/mpv` links but will not launch**: check that `build-minimal/builds-arm/` exists and
-  that `builds-arm -> conan` exists at the repo root.
-- **Swift or libplacebo failures**: the setup already includes fixes for Python 3.13 in libplacebo's
-  generator, Swift include access to the generated `libplacebo/config.h`, and a Vulkan macro
-  redefinition. If they regress, check `subprojects/libplacebo/src/vulkan/utils_gen.py`,
-  `osdep/mac/meson.build` and `video/out/vulkan/common.h`.
-
-## Previous macOS flow (reference)
-
-The older flow used `MPV_INSTALL_PREFIX=$(pwd)/build/out/mpv`, `--cross-file ci/x86_64-cross-file.txt`
-for Intel, `--wrap-mode=forcefallback`, `-Ddefault_library=shared`, `-Dtests=false`,
-`-Dlua=disabled`, `-Djpeg=disabled`, explicit libass/libplacebo options in `meson setup`, and
-rewrote dylibs after install with `python build-scripts/fixDeps.py $MPV_INSTALL_PREFIX/lib/*.dylib`.
+- **conan install: "Missing prebuilt package" for freetype/harfbuzz**: a shared mac binary is not
+  on topaz-conan; publish it with `run_build_and_publish.sh ... --skip-existing` (see Dependency
+  policy).
+- **`cannot resolve @rpath/... (needed by ...)` while packaging**: a runtime dependency of
+  topaz-ffmpeg is not in any conan package folder of the graph; check `conan/*.pc` and
+  `conan/conanrunenv-*.sh`.
+- **`links host library /opt/local/...`**: something in the build found a MacPorts/Homebrew library;
+  check `PKG_CONFIG_LIBDIR` and the meson options for that dependency (disable it explicitly).
+- **`--vo=gpu-next` prints "Failed initializing any suitable GPU context" in a non-GUI shell**: a
+  background session has no window server. Run the player from Terminal.app; the libmpv API
+  (`vo=null`) test works anywhere.
+- **Stale `subprojects/libplacebo`/`libass`**: delete them; the wraps re-clone the pinned tags.
